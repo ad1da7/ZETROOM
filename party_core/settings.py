@@ -11,7 +11,13 @@ https://docs.djangoproject.com/en/6.1/ref/settings/
 """
 
 from pathlib import Path
-
+import os
+"""это нужно для того чтобы загрзить данный из файла .env"""
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -75,12 +81,26 @@ WSGI_APPLICATION = 'party_core.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.1/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+"""снизу приведен метод двух бд , так как я нофоруме прочитал лусше для начальног проекта сделать на двух бд так как пока 
+я буду проверять все на sqllite , а по тз PostgreSQL я его пока не подключил из-зп этого у меня сразу две бд"""
+if os.getenv('DB_NAME') and os.getenv('DB_HOST'):
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.getenv('DB_NAME'),
+            'USER': os.getenv('DB_USER'),
+            'PASSWORD': os.getenv('DB_PASSWORD'),
+            'HOST': os.getenv('DB_HOST'),
+            'PORT': os.getenv('DB_PORT', '5432'),
+        }
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 
 # Password validation
