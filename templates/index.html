@@ -2,47 +2,174 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Watch Party | Главная</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Watch Party | Кинозал</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
-        body { background: #121212; color: white; font-family: Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .container { display: flex; gap: 40px; padding: 40px; background: #1e1e1e; border-radius: 15px; box-shadow: 0 0 20px rgba(0, 243, 255, 0.1); }
-        .box { display: flex; flex-direction: column; align-items: center; width: 300px; }
-        h2 { color: #00f3ff; margin-bottom: 20px; text-align: center; }
-        input { width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 8px; border: 1px solid #333; background: #2a2a2a; color: white; box-sizing: border-box; }
-        input:focus { outline: none; border-color: #00f3ff; }
-        button { width: 100%; padding: 12px; background: #00f3ff; color: black; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 1rem; transition: 0.3s; }
-        button:hover { background: #00c0cc; box-shadow: 0 0 15px #00c0cc; }
-        .divider { width: 2px; background: #333; }
-        .error { color: #ff4c4c; margin-bottom: 15px; font-size: 0.9rem; text-align: center; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f0f11;
+            color: #ffffff;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            background-color: #1a1a1e;
+            border: 1px solid #2a2a30;
+            border-radius: 16px;
+            padding: 40px;
+            width: 100%;
+            max-width: 800px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .title {
+            text-align: center;
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 40px;
+            color: #ffffff;
+        }
+
+        .forms-wrapper {
+            display: flex;
+            gap: 40px;
+        }
+
+        .form-block {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-block h2 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #a0a0a5;
+            text-align: center;
+        }
+
+        input {
+            width: 100%;
+            padding: 14px 16px;
+            margin-bottom: 16px;
+            background-color: #0f0f11;
+            border: 1px solid #2a2a30;
+            border-radius: 8px;
+            color: #ffffff;
+            font-family: 'Inter', sans-serif;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        input:focus {
+            border-color: #55555c;
+        }
+
+        input::placeholder {
+            color: #55555c;
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            font-family: 'Inter', sans-serif;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        .btn-create {
+            background-color: #3b82f6; /* Синий */
+            color: white;
+        }
+
+        .btn-create:hover {
+            background-color: #2563eb;
+        }
+
+        .btn-join {
+            background-color: #10b981; /* Зеленый */
+            color: white;
+        }
+
+        .btn-join:hover {
+            background-color: #059669;
+        }
+
+        .divider {
+            width: 1px;
+            background-color: #2a2a30;
+        }
+
+        .error-message {
+            background-color: #ef4444;
+            color: white;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+
+        /* Для мобильных телефонов */
+        @media (max-width: 600px) {
+            .forms-wrapper {
+                flex-direction: column;
+                gap: 30px;
+            }
+            .divider {
+                width: 100%;
+                height: 1px;
+            }
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <!--блок создания комнаты-->
-        <div class="box">
-            <h2>Создать комнату</h2>
-            <form method="POST" action="{% url 'create_room' %}">
-                {% csrf_token %}
-                <input type="text" name="room_name" placeholder="Название фильма..." required>
-                <button type="submit">Создать</button>
-            </form>
-        </div>
+        <div class="title">Watch Party</div>
 
-        <div class="divider"></div>
+        <div class="forms-wrapper">
+            <!-- Блок создания -->
+            <div class="form-block">
+                <h2>Создать комнату</h2>
+                <form method="POST" action="{% url 'create_room' %}">
+                    {% csrf_token %}
+                    <input type="text" name="room_name" placeholder="Название фильма..." required autocomplete="off">
+                    <button type="submit" class="btn-create">Создать</button>
+                </form>
+            </div>
 
-        <!--блок входа в комнату-->
-        <div class="box">
-            <h2>Войти в комнату</h2>
-            <!--вывод ошибки если комната не найдена-->
-            {% if error %}
-                <div class="error">{{ error }}</div>
-            {% endif %}
+            <div class="divider"></div>
 
-            <form method="POST" action="{% url 'join_room' %}">
-                {% csrf_token %}
-                <input type="text" name="query" placeholder="Название или код " required>
-                <button type="submit">Войти</button>
-            </form>
+            <!-- Блок входа -->
+            <div class="form-block">
+                <h2>Войти по коду</h2>
+
+                {% if error %}
+                    <div class="error-message">{{ error }}</div>
+                {% endif %}
+
+                <form method="POST" action="{% url 'join_room' %}">
+                    {% csrf_token %}
+                    <input type="text" name="query" placeholder="Название или " required autocomplete="off">
+                    <button type="submit" class="btn-join">Войти</button>
+                </form>
+            </div>
         </div>
     </div>
 </body>
