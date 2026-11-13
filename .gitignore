@@ -1,16 +1,30 @@
-# Виртуальное окружение
-.venv/
+# === Виртуальное окружение Python ===
 venv/
+.venv/
+env/
+ENV/
 
-# Настройки PyCharm
-.idea/
-
-# Кэш Python
+# === Кэш Python и байт-код ===
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
 
-# Секреты (пароли)
-.env
+# === Настройки IDE и редакторов ===
+.idea/
+.vscode/
+*.sublime-workspace
+*.swp
 
-# Локальная база данных
+# === Локальные базы данных ===
+*.sqlite3
+*.db
 db.sqlite3
+
+# === Секреты и переменные окружения ===
+.env
+.env.local
+
+# === Логи и временные файлы ===
+*.log
+.DS_Store
+Thumbs.db

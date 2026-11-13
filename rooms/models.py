@@ -1,5 +1,5 @@
 from django.db import models
-import uuid  #библиотека чтобы делать случайные айди
+import uuid  #библиотека чтобы  делать случайные айди
 from django.contrib.auth.models import User  #встроенная модель пользователя
 
 class Room(models.Model):#модель самой кинокомнаты
@@ -8,18 +8,8 @@ class Room(models.Model):#модель самой кинокомнаты
     host = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)#хозяин комнаты
     created_at = models.DateTimeField(auto_now_add=True)#дата создания комнаты
 
-    #функция чтобы в админке показывалось название а не "объект 1"
     def __str__(self):
-        return self.name
-
-class Message(models.Model):#модель для сообщений в чате
-    room = models.ForeignKey(Room, on_delete=models.CASCADE, related_name='messages')  #к какой комнате относится сообщение
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)    #кто написал
-    text = models.TextField()#сам текст сообщения
-    created_at = models.DateTimeField(auto_now_add=True)#когда отправили
-
-    def __str__(self):
-        return f"Сообщение от {self.user}"
+        return self.name #чтобы в админке было название а не объект 1
 
 class Participant(models.Model):#модель участника (кто зашел в комнату)
     room = models.ForeignKey(Room, on_delete=models.CASCADE, related_name='participants')  #в какую комнату зашел
