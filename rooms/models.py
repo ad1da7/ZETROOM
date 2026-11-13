@@ -1,32 +1,30 @@
 from django.db import models
-import uuid  #это специальная библиотека для генерации айдишников
-from django.contrib.auth.models import User  #это встроенная модель самого пользователя
+import uuid  #библиотека чтобы делать случайные айди
+from django.contrib.auth.models import User  #встроенная модель пользователя
 
-class Room(models.Model):# это модель для самой  кинокомнаты
-    uuid = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)# Это уникальный хеш для ссылки (типа 550e8400-e29b...), чтобы ссылки были секретными
-    name = models.CharField(max_length=100) #это для название самой комнаты
-    host = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)# Хозяин комнаты (тот, кто её создал). Пока она пустая я потом туда запилю все
-    created_at = models.DateTimeField(auto_now_add=True)# Дата и время создания, и она заполняется автоматом
+class Room(models.Model):#модель самой кинокомнаты
+    uuid = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)#уникальный код для ссылки на комнату
+    name = models.CharField(max_length=100) #название комнаты
+    host = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)#хозяин комнаты
+    created_at = models.DateTimeField(auto_now_add=True)#дата создания комнаты
 
-    # Эта функция нужна, чтобы в админке мы видели название комнаты, а не "Room object (1)"
+    #функция чтобы в админке показывалось название а не "объект 1"
     def __str__(self):
         return self.name
 
-class Message(models.Model):# Модель для сообщений в чате
-    room = models.ForeignKey(Room, on_delete=models.CASCADE, related_name='messages')  # Привязываем сообщение к конкретной комнате
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)    # Кто отправил сообщение
-    text = models.TextField()# Сам текст сообщения
-    created_at = models.DateTimeField(auto_now_add=True)# Когда отправлено
+class Message(models.Model):#модель для сообщений в чате
+    room = models.ForeignKey(Room, on_delete=models.CASCADE, related_name='messages')  #к какой комнате относится сообщение
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)    #кто написал
+    text = models.TextField()#сам текст сообщения
+    created_at = models.DateTimeField(auto_now_add=True)#когда отправили
 
     def __str__(self):
         return f"Сообщение от {self.user}"
 
-class Participant(models.Model):
-    # Модель участника комнаты
-
-    room = models.ForeignKey(Room, on_delete=models.CASCADE, related_name='participants')  # Комната участника, каскадное удаление, доступ через room.participants
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)  # Пользователь (может быть пустым)
-    joined_at = models.DateTimeField(auto_now_add=True)  # Время присоединения (автозаполнение)
+class Participant(models.Model):#модель участника (кто зашел в комнату)
+    room = models.ForeignKey(Room, on_delete=models.CASCADE, related_name='participants')  #в какую комнату зашел
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)  #какой пользователь
+    joined_at = models.DateTimeField(auto_now_add=True)  #время когда зашел
 
     def __str__(self):
-        return f"{self.user} в {self.room.name}"  # Строковое представление: «пользователь в комнате»
+        return f"{self.user} в {self.room.name}"  #показывает кто в какой комнате
