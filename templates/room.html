@@ -4,27 +4,56 @@
     <meta charset="UTF-8">
     <title>Комната: {{ room.name }}</title>
     <style>
-        body { background: #121212; color: white; font-family: Arial, sans-serif; margin: 0; padding: 20px; display: flex; justify-content: center; }
-        .container { background: #1e1e1e; padding: 40px; border-radius: 15px; width: 100%; max-width: 600px; box-shadow: 0 0 20px rgba(0, 243, 255, 0.1); }
-        h1 { color: #00f3ff; text-align: center; }
-        .link { text-align: center; color: #888; margin-bottom: 30px; }
-        .participants { list-style: none; padding: 0; }
-        .participants li { background: #2a2a2a; padding: 10px; margin-bottom: 5px; border-radius: 5px; }
+        body { background: #0f0f11; color: white; font-family: Arial, sans-serif; margin: 0; padding: 20px; }
+        .main { display: flex; gap: 20px; max-width: 1200px; margin: 0 auto; }
+        .video { flex: 3; background: #000; aspect-ratio: 16/9; border: 2px dashed #333; display: flex; justify-content: center; align-items: center; border-radius: 10px; }
+        .sidebar { flex: 1; background: #1a1a1e; border-radius: 10px; padding: 20px; display: flex; flex-direction: column; height: 60vh; }
+        .sidebar h3 { margin-top: 0; color: #3b82f6; }
+
+        .chat-box { flex: 1; overflow-y: auto; background: #0f0f11; border-radius: 5px; padding: 10px; margin-bottom: 15px; }
+        .msg { background: #2a2a30; padding: 8px; border-radius: 5px; margin-bottom: 8px; font-size: 0.9rem; }
+        .msg .author { color: #3b82f6; font-weight: bold; }
+
+        .chat-form { display: flex; gap: 10px; }
+        .chat-form input { flex: 1; padding: 10px; border-radius: 5px; border: none; background: #0f0f11; color: white; border: 1px solid #2a2a30;}
+        .chat-form button { background: #3b82f6; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>{{ room.name }}</h1>
-        <p class="link">Ссылка для друзей: http://127.0.0.1:8000/room/{{ room.uuid }}/</p>
+    <h1 style="text-align: center;">{{ room.name }}</h1>
+    <p style="text-align: center; color: gray;">Ссылка для друзей: http://127.0.0.1:8000/room/{{ room.uuid }}/</p>
 
-        <h3>Участники ({{ participants|length }})</h3>
-        <ul class="participants">
-            {% for p in participants %}
-                <li>{{ p.user.username }}</li>
-            {% empty %}
-                <li>Пока никого нет...</li>
-            {% endfor %}
-        </ul>
+    <div class="main">
+        <div class="video">
+            <h2 style="color: #555;">Плеер (Спринт 3)</h2>
+        </div>
+
+        <div class="sidebar">
+            <h3>Участники ({{ participants|length }})</h3>
+            <ul style="padding-left: 20px; margin-bottom: 20px; color: #888; font-size: 0.9rem;">
+                {% for p in participants %}
+                    <li>{{ p.user.username }}</li>
+                {% endfor %}
+            </ul>
+
+            <h3>Чат</h3>
+            <div class="chat-box">
+                {% for msg in messages %}
+                    <div class="msg">
+                        <span class="author">{{ msg.user }}:</span> {{ msg.text }}
+                    </div>
+                {% empty %}
+                    <p style="color: gray; text-align: center;">Пока тихо...</p>
+                {% endfor %}
+            </div>
+
+            <!-- Форма отправки сообщения -->
+            <form method="POST" class="chat-form">
+                {% csrf_token %}
+                <input type="text" name="message_text" placeholder="Ваше сообщение..." required autocomplete="off">
+                <button type="submit">➤</button>
+            </form>
+        </div>
     </div>
 </body>
 </html>

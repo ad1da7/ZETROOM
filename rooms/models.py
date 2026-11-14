@@ -18,3 +18,9 @@ class Participant(models.Model):#модель участника (кто заш�
 
     def __str__(self):
         return f"{self.user} в {self.room.name}"  #показывает кто в какой комнате
+
+class Message(models.Model):
+    room = models.ForeignKey(Room, on_delete=models.CASCADE, related_name='messages')
+    user = models.CharField(max_length=100, default='Гость')
+    text = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)

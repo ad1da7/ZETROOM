@@ -1,12 +1,10 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from .models import Room, Participant
+from .models import Room, Participant, Message
 from django.contrib.auth.models import User
-
 
 def index(request):
     # открываем главную страницу
     return render(request, 'index.html')
-
 
 def create_room(request):
     if request.method == 'POST':
@@ -16,7 +14,6 @@ def create_room(request):
         # перекидываем в созданную комнату
         return redirect('room_detail', room_uuid=new_room.uuid)
     return redirect('index')
-
 
 def join_room(request):
     if request.method == 'POST':
@@ -37,7 +34,6 @@ def join_room(request):
             return render(request, 'index.html', {'error': 'комната не найдена'})
     return redirect('index')
 
-
 def room_detail(request, room_uuid):
     room = get_object_or_404(Room, uuid=room_uuid)
 
@@ -51,7 +47,21 @@ def room_detail(request, room_uuid):
     # записываем гостя в комнату
     Participant.objects.get_or_create(room=room, user=current_user)
 
+    # логика чата: если отправили сообщение
+    if request.method == 'POST':
+        text = request.POST.get('message_text')
+        if text:
+            Message.objects.create(room=room, user=current_user.username, text=text)
+            # перезагружаем страницу чтобы увидеть сообщение
+            return redirect('room_detail', room_uuid=room.uuid)
+
     # получаем список всех участников
     participants = room.participants.all()
+    # получаем все сообщения этой комнаты по порядку
+    messages = room.messages.all().order_by('created_at')
 
-    return render(request, 'room.html', {'room': room, 'participants': participants})
+    return render(request, 'room.html', {
+        'room': room,
+        'participants': participants,
+        'messages': messages
+    })
