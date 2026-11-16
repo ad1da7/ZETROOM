@@ -1,3 +1,4 @@
+//получаем uuid комнаты
 const roomUuid = JSON.parse(document.getElementById('room-uuid').textContent);
 
 const chatSocket = new WebSocket(
