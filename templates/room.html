@@ -13,6 +13,42 @@
             padding: 20px;
         }
 
+        /* Шапка комнаты */
+        .room-header {
+            max-width: 1200px;
+            margin: 0 auto 20px auto;
+            text-align: center;
+        }
+
+        .room-header h1 {
+            margin: 0 0 8px 0;
+        }
+
+        .room-description {
+            color: #a0a0a5;
+            font-size: 0.95rem;
+            margin: 0 auto 12px auto;
+            max-width: 700px;
+            line-height: 1.4;
+        }
+
+        .room-code-badge {
+            display: inline-block;
+            background: #1a1a1e;
+            border: 1px solid #2a2a30;
+            color: #a0a0a5;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: border-color 0.2s, color 0.2s;
+        }
+
+        .room-code-badge:hover {
+            border-color: #3b82f6;
+            color: #ffffff;
+        }
+
         /* Главный контейнер с двумя колонками */
         .main {
             display: flex;
@@ -21,16 +57,66 @@
             margin: 0 auto;
         }
 
-        /* Блок для видео (занимает 3/4 ширины) */
-        .video {
+        /* Левая колонка: плеер + панель управления */
+        .player-wrapper {
             flex: 3;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        /* Блок для видео */
+        .video {
+            width: 100%;
             background: #000;
             aspect-ratio: 16/9;
-            border: 2px dashed #333;
+            border: 1px solid #2a2a30;
             display: flex;
             justify-content: center;
             align-items: center;
             border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .video video,
+        .video iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            outline: none;
+        }
+
+        /* Кнопки синхронизации (привязаны к sync_player.js) */
+        .sync-controls {
+            display: flex;
+            gap: 10px;
+            background: #1a1a1e;
+            padding: 10px 15px;
+            border-radius: 8px;
+            align-items: center;
+        }
+
+        .sync-btn {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
+        .sync-btn:hover {
+            background: #2563eb;
+        }
+
+        .sync-btn.pause {
+            background: #2a2a30;
+        }
+
+        .sync-btn.pause:hover {
+            background: #3f3f46;
         }
 
         /* Боковая панель для чата (занимает 1/4 ширины) */
@@ -80,27 +166,57 @@
             cursor: pointer;
         }
 
-        /* Стили для самих сообщений (их будет добавлять JS) */
-        .message-item {
+        /* Стили для самих сообщений */
+        .msg, .message-item {
             background: #2a2a30;
             padding: 8px;
             border-radius: 5px;
             margin-bottom: 8px;
             font-size: 0.9rem;
         }
-        .message-author {
+        .author, .message-author {
             color: #3b82f6;
             font-weight: bold;
         }
     </style>
 </head>
 <body>
-    <h1 style="text-align: center;">{{ room.name }}</h1>
+    <div class="room-header">
+        <h1>{{ room.name }}</h1>
+
+        {% if room.description %}
+            <p class="room-description">{{ room.description }}</p>
+        {% endif %}
+
+        <div class="room-code-badge" onclick="copyRoomCode()" title="Нажмите, чтобы скопировать код комнаты">
+            Код комнаты: <span id="roomCodeText">{{ room.uuid }}</span> 📋
+        </div>
+    </div>
 
     <div class="main">
-        <!-- Левая часть: плеер (заглушка) -->
-        <div class="video">
-            <h2 style="color: #555;"></h2>
+        <!-- Левая часть: плеер -->
+        <div class="player-wrapper">
+            <div class="video">
+                {% if room.video_url %}
+                    {% if ".mp4" in room.video_url or ".webm" in room.video_url or ".ogg" in room.video_url %}
+                        <video id="video-player" src="{{ room.video_url }}" controls></video>
+                    {% else %}
+                        <iframe src="{{ room.video_url }}" allowfullscreen allow="autoplay; encrypted-media"></iframe>
+                    {% endif %}
+                {% else %}
+                    <h2 style="color: #555;">Ссылка на видео не указана</h2>
+                {% endif %}
+            </div>
+
+            <!-- Панель кнопок для sync_player.js (показывается, если загружен HTML5 video) -->
+            {% if room.video_url %}
+                {% if ".mp4" in room.video_url or ".webm" in room.video_url or ".ogg" in room.video_url %}
+                    <div class="sync-controls">
+                        <button type="button" id="btn-play" class="sync-btn">▶ Play для всех</button>
+                        <button type="button" id="btn-pause" class="sync-btn pause">⏸ Пауза для всех</button>
+                    </div>
+                {% endif %}
+            {% endif %}
         </div>
 
         <!-- Правая часть: чат -->
@@ -123,7 +239,6 @@
                 {% endfor %}
             </div>
 
-            <!-- Форма отправки сообщения -->
             <form method="POST" class="chat-form">
                 {% csrf_token %}
                 <input type="text" name="message_text" placeholder="Ваше сообщение..." required autocomplete="off">
@@ -132,10 +247,16 @@
         </div>
     </div>
 
-    <!-- Передаем UUID комнаты в JavaScript для подключения к WebSocket -->
     {{ room.uuid|json_script:"room-uuid" }}
 
-    <!-- Подключаем скрипт, который напишет Участник 3 -->
+    <script>
+        function copyRoomCode() {
+            const code = document.getElementById('roomCodeText').innerText;
+            navigator.clipboard.writeText(code);
+            alert('Код комнаты скопирован: ' + code);
+        }
+    </script>
+
     <script src="/static/js/sync_player.js"></script>
 </body>
 </html>
