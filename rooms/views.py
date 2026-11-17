@@ -2,11 +2,9 @@ from django.shortcuts import render, redirect, get_object_or_404
 from .models import Room, Participant, Message
 from django.contrib.auth.models import User
 
-
 def index(request):
     # открываем главную страницу
     return render(request, 'index.html')
-
 
 def create_room(request):
     if request.method == 'POST':
@@ -27,6 +25,24 @@ def create_room(request):
         return redirect('room_detail', room_uuid=new_room.uuid)
     return redirect('index')
 
+def join_room(request):
+    if request.method == 'POST':
+        query = request.POST.get('query')  # берем то что ввел пользователь
+        room = None
+        try:
+            # сначала ищем по коду (uuid)
+            room = Room.objects.get(uuid=query)
+        except (Room.DoesNotExist, ValueError):
+            # если не нашли по коду ищем по названию
+            room = Room.objects.filter(name__icontains=query).first()
+
+        if room:
+            # если нашли перекидываем в комнату
+            return redirect('room_detail', room_uuid=room.uuid)
+        else:
+            # если не нашли показываем ошибку на главной
+            return render(request, 'index.html', {'error': 'комната не найдена'})
+    return redirect('index')
 
 def join_room(request):
     if request.method == 'POST':

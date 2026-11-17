@@ -105,16 +105,28 @@
 
         <!-- Правая часть: чат -->
         <div class="sidebar">
-            <h3>Чат</h3>
+            <h3>Участники ({{ participants|length }})</h3>
+            <ul style="padding-left: 20px; margin-bottom: 20px; color: #888; font-size: 0.9rem;">
+                {% for p in participants %}
+                    <li>{{ p.user.username }}</li>
+                {% endfor %}
+            </ul>
 
-            <!-- Окно вывода сообщений -->
-            <div class="chat-box" id="chat-box">
-                <!-- Сообщения будут добавляться сюда через JavaScript -->
+            <h3>Чат</h3>
+            <div class="chat-box">
+                {% for msg in messages %}
+                    <div class="msg">
+                        <span class="author">{{ msg.user }}:</span> {{ msg.text }}
+                    </div>
+                {% empty %}
+                    <p style="color: gray; text-align: center;">Пока тихо...</p>
+                {% endfor %}
             </div>
 
-            <!-- Форма ввода -->
-            <form class="chat-form" id="chat-form">
-                <input type="text" id="chat-input" placeholder="Сообщение..." autocomplete="off">
+            <!-- Форма отправки сообщения -->
+            <form method="POST" class="chat-form">
+                {% csrf_token %}
+                <input type="text" name="message_text" placeholder="Ваше сообщение..." required autocomplete="off">
                 <button type="submit">➤</button>
             </form>
         </div>
