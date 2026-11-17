@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Вход в аккаунт</title>
+    <style>
+        body { font-family: sans-serif; background: #18181b; color: #fff; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .box { background: #27272a; padding: 30px; border-radius: 12px; width: 360px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+        h2 { margin-top: 0; text-align: center; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; color: #a1a1aa; font-size: 14px; }
+        input { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #3f3f46; background: #18181b; color: #fff; box-sizing: border-box; }
+        button { width: 100%; padding: 10px; background: #6366f1; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; margin-top: 10px; }
+        button:hover { background: #4f46e5; }
+        .links { margin-top: 15px; text-align: center; font-size: 14px; color: #a1a1aa; }
+        a { color: #818cf8; text-decoration: none; }
+        .error { color: #f87171; font-size: 13px; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+<div class="box">
+    <h2>Вход</h2>
+    <form method="post">
+        {% csrf_token %}
+        {% if form.non_field_errors %}
+            <div class="error">{{ form.non_field_errors }}</div>
+        {% endif %}
+        {% for field in form %}
+            <div class="form-group">
+                <label>{{ field.label }}</label>
+                {{ field }}
+                {% if field.errors %}
+                    <div class="error">{{ field.errors }}</div>
+                {% endif %}
+            </div>
+        {% endfor %}
+        <button type="submit">Войти</button>
+    </form>
+    <div class="links">
+        Нет аккаунта? <a href="{% url 'register' %}">Зарегистрироваться</a><br><br>
+        <a href="/">← На главную</a>
+    </div>
+</div>
+</body>
+</html>

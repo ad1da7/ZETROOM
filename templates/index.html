@@ -16,6 +16,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
+            padding: 20px;
         }
 
         .container {
@@ -26,6 +27,79 @@
             width: 100%;
             max-width: 800px;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Верхняя панель профиля */
+        .top-bar {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid #2a2a30;
+            gap: 12px;
+        }
+
+        .profile-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background-color: #0f0f11;
+            border: 1px solid #2a2a30;
+            padding: 6px 14px 6px 6px;
+            border-radius: 999px;
+            text-decoration: none;
+            color: #ffffff;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: border-color 0.2s, background-color 0.2s;
+        }
+
+        .profile-pill:hover {
+            border-color: #55555c;
+            background-color: #222227;
+        }
+
+        .mini-avatar {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            object-fit: cover;
+            background-color: #3b82f6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .auth-link {
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 600;
+            padding: 8px 16px;
+            border-radius: 8px;
+            transition: background-color 0.2s, color 0.2s;
+        }
+
+        .auth-login {
+            color: #a0a0a5;
+            border: 1px solid #2a2a30;
+        }
+
+        .auth-login:hover {
+            color: #ffffff;
+            border-color: #55555c;
+        }
+
+        .auth-register {
+            background-color: #3b82f6;
+            color: #ffffff;
+        }
+
+        .auth-register:hover {
+            background-color: #2563eb;
         }
 
         .title {
@@ -94,7 +168,7 @@
         }
 
         .btn-create {
-            background-color: #3b82f6; /* Синий */
+            background-color: #3b82f6;
             color: white;
         }
 
@@ -103,7 +177,7 @@
         }
 
         .btn-join {
-            background-color: #10b981; /* Зеленый */
+            background-color: #10b981;
             color: white;
         }
 
@@ -126,7 +200,6 @@
             font-size: 0.9rem;
         }
 
-        /* Для мобильных телефонов */
         @media (max-width: 600px) {
             .forms-wrapper {
                 flex-direction: column;
@@ -141,6 +214,23 @@
 </head>
 <body>
     <div class="container">
+        <!-- Панель аккаунта -->
+        <div class="top-bar">
+            {% if user.is_authenticated %}
+                <a href="{% url 'profile' %}" class="profile-pill">
+                    {% if user.profile.avatar %}
+                        <img src="{{ user.profile.avatar.url }}" alt="Аватар" class="mini-avatar">
+                    {% else %}
+                        <div class="mini-avatar">{{ user.username|first|upper }}</div>
+                    {% endif %}
+                    <span>{{ user.profile.tag|default:user.username }}</span>
+                </a>
+            {% else %}
+                <a href="{% url 'login' %}" class="auth-link auth-login">Войти</a>
+                <a href="{% url 'register' %}" class="auth-link auth-register">Регистрация</a>
+            {% endif %}
+        </div>
+
         <div class="title">Watch Party</div>
 
         <div class="forms-wrapper">
@@ -166,7 +256,7 @@
 
                 <form method="POST" action="{% url 'join_room' %}">
                     {% csrf_token %}
-                    <input type="text" name="query" placeholder="Название или " required autocomplete="off">
+                    <input type="text" name="query" placeholder="Название или код..." required autocomplete="off">
                     <button type="submit" class="btn-join">Войти</button>
                 </form>
             </div>

@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Watch Party | Личный кабинет</title>
+    <link href="https://googleapis.com" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f0f11;
+            color: #ffffff;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background-color: #1a1a1e;
+            border: 1px solid #2a2a30;
+            border-radius: 16px;
+            padding: 40px;
+            width: 100%;
+            max-width: 520px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .top-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .back-link {
+            color: #a0a0a5;
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: color 0.2s;
+        }
+
+        .back-link:hover {
+            color: #ffffff;
+        }
+
+        .btn-logout {
+            background: transparent;
+            border: 1px solid #2a2a30;
+            color: #ef4444;
+            padding: 6px 14px;
+            border-radius: 8px;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s, border-color 0.2s;
+        }
+
+        .btn-logout:hover {
+            background-color: rgba(239, 68, 68, 0.1);
+            border-color: #ef4444;
+        }
+
+        .profile-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .avatar-large {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #3b82f6;
+            margin: 0 auto 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #0f0f11;
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: #3b82f6;
+        }
+
+        .username {
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .user-tag {
+            color: #3b82f6;
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        label {
+            display: block;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #a0a0a5;
+            margin-bottom: 8px;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        textarea {
+            width: 100%;
+            padding: 12px 14px;
+            background-color: #0f0f11;
+            border: 1px solid #2a2a30;
+            border-radius: 8px;
+            color: #ffffff;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.95rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        input:focus, textarea:focus {
+            border-color: #55555c;
+        }
+
+        input[type="file"] {
+            width: 100%;
+            padding: 10px;
+            background-color: #0f0f11;
+            border: 1px dashed #2a2a30;
+            border-radius: 8px;
+            color: #a0a0a5;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+
+        /* Стилизация стандартного чекбокса "Очистить" у поля аватарки Django */
+        input[type="checkbox"] {
+            width: auto;
+            margin-right: 6px;
+            accent-color: #3b82f6;
+        }
+
+        .form-group a {
+            color: #3b82f6;
+            text-decoration: none;
+            font-size: 0.85rem;
+        }
+
+        .btn-save {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            background-color: #3b82f6;
+            color: white;
+            font-family: 'Inter', sans-serif;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 8px;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+
+        .btn-save:hover {
+            background-color: #2563eb;
+        }
+
+        .btn-save:active {
+            transform: scale(0.98);
+        }
+
+        .errorlist {
+            list-style: none;
+            color: #ef4444;
+            font-size: 0.85rem;
+            margin-top: 6px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="top-nav">
+            <a href="/" class="back-link">← На главную</a>
+            <form action="{% url 'logout' %}" method="post">
+                {% csrf_token %}
+                <button type="submit" class="btn-logout">Выйти</button>
+            </form>
+        </div>
+
+        <div class="profile-header">
+            {% if profile.avatar %}
+                <img src="{{ profile.avatar.url }}" alt="Аватар" class="avatar-large">
+            {% else %}
+                <div class="avatar-large">{{ user.username|first|upper }}</div>
+            {% endif %}
+            <div class="username">{{ user.username }}</div>
+            <div class="user-tag">{{ profile.tag|default:"Тег не задан" }}</div>
+        </div>
+
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            {% for field in form %}
+                <div class="form-group">
+                    <label>{{ field.label }}</label>
+                    {{ field }}
+                    {{ field.errors }}
+                </div>
+            {% endfor %}
+            <button type="submit" class="btn-save">Сохранить профиль</button>
+        </form>
+    </div>
+</body>
+</html>

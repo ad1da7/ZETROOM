@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -31,6 +32,13 @@
             justify-content: center;
             align-items: center;
             border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .video video {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
         }
 
         /* Боковая панель для чата (занимает 1/4 ширины) */
@@ -80,13 +88,14 @@
             cursor: pointer;
         }
 
-        /* Стили для самих сообщений (их будет добавлять JS) */
+        /* Стили для самих сообщений (общие для БД и JS) */
         .message-item {
             background: #2a2a30;
             padding: 8px;
             border-radius: 5px;
             margin-bottom: 8px;
             font-size: 0.9rem;
+            word-wrap: break-word;
         }
         .message-author {
             color: #3b82f6;
@@ -98,44 +107,49 @@
     <h1 style="text-align: center;">{{ room.name }}</h1>
 
     <div class="main">
-        <!-- Левая часть: плеер (заглушка) -->
+        <!-- Левая часть: плеер -->
         <div class="video">
-            <h2 style="color: #555;"></h2>
+            {% if room.video_url %}
+                <video id="room-player" controls src="{{ room.video_url }}"></video>
+            {% else %}
+                <h2 style="color: #555;">Ожидание видео...</h2>
+            {% endif %}
         </div>
 
         <!-- Правая часть: чат -->
         <div class="sidebar">
-            <h3>Участники ({{ participants|length }})</h3>
-            <ul style="padding-left: 20px; margin-bottom: 20px; color: #888; font-size: 0.9rem;">
+            <h3>Участники (<span id="participants-count">{{ participants|length }}</span>)</h3>
+            <ul id="participants-list" style="padding-left: 20px; margin-bottom: 20px; color: #888; font-size: 0.9rem;">
                 {% for p in participants %}
                     <li>{{ p.user.username }}</li>
                 {% endfor %}
             </ul>
 
             <h3>Чат</h3>
-            <div class="chat-box">
+            <div class="chat-box" id="chat-box">
                 {% for msg in messages %}
-                    <div class="msg">
-                        <span class="author">{{ msg.user }}:</span> {{ msg.text }}
+                    <div class="message-item">
+                        <span class="message-author">{{ msg.user }}:</span> {{ msg.text }}
                     </div>
                 {% empty %}
-                    <p style="color: gray; text-align: center;">Пока тихо...</p>
+                    <p id="empty-chat-msg" style="color: gray; text-align: center;">Пока тихо...</p>
                 {% endfor %}
             </div>
 
             <!-- Форма отправки сообщения -->
-            <form method="POST" class="chat-form">
+            <form method="POST" class="chat-form" id="chat-form">
                 {% csrf_token %}
-                <input type="text" name="message_text" placeholder="Ваше сообщение..." required autocomplete="off">
+                <input type="text" id="chat-input" name="message_text" placeholder="Ваше сообщение..." required autocomplete="off">
                 <button type="submit">➤</button>
             </form>
         </div>
     </div>
 
-    <!-- Передаем UUID комнаты в JavaScript для подключения к WebSocket -->
+    <!-- Передаем UUID комнаты и имя пользователя в JavaScript -->
     {{ room.uuid|json_script:"room-uuid" }}
+    {{ request.user.username|json_script:"current-user" }}
 
     <!-- Подключаем скрипт, который напишет Участник 3 -->
-    <script src="/static/js/sync_player.js"></script>
+    <script src="{% static 'js/sync_player.js' %}"></script>
 </body>
 </html>
