@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Watch Party | Кинозал</title>
+    <link href="https://googleapis.com" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f0f11;
+            color: #ffffff;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background-color: #1a1a1e;
+            border: 1px solid #2a2a30;
+            border-radius: 16px;
+            padding: 40px;
+            width: 100%;
+            max-width: 800px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .top-bar {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid #2a2a30;
+            gap: 12px;
+        }
+
+        .profile-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background-color: #0f0f11;
+            border: 1px solid #2a2a30;
+            padding: 6px 14px 6px 6px;
+            border-radius: 999px;
+            text-decoration: none;
+            color: #ffffff;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: border-color 0.2s, background-color 0.2s;
+        }
+
+        .profile-pill:hover {
+            border-color: #55555c;
+            background-color: #222227;
+        }
+
+        .mini-avatar {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            object-fit: cover;
+            background-color: #3b82f6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .auth-link {
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 600;
+            padding: 8px 16px;
+            border-radius: 8px;
+            transition: background-color 0.2s, color 0.2s;
+        }
+
+        .auth-login {
+            color: #a0a0a5;
+            border: 1px solid #2a2a30;
+        }
+
+        .auth-login:hover {
+            color: #ffffff;
+            border-color: #55555c;
+        }
+
+        .auth-register {
+            background-color: #3b82f6;
+            color: #ffffff;
+        }
+
+        .auth-register:hover {
+            background-color: #2563eb;
+        }
+
+        .title {
+            text-align: center;
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 40px;
+            color: #ffffff;
+        }
+
+        .forms-wrapper {
+            display: flex;
+            gap: 40px;
+        }
+
+        .form-block {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .form-block h2 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #a0a0a5;
+            text-align: center;
+        }
+
+        .create-hint {
+            color: #71717a;
+            font-size: 0.9rem;
+            text-align: center;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+
+        input, textarea {
+            width: 100%;
+            padding: 14px 16px;
+            margin-bottom: 16px;
+            background-color: #0f0f11;
+            border: 1px solid #2a2a30;
+            border-radius: 8px;
+            color: #ffffff;
+            font-family: 'Inter', sans-serif;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.2s;
+            resize: vertical;
+        }
+
+        input:focus, textarea:focus {
+            border-color: #55555c;
+        }
+
+        input::placeholder, textarea::placeholder {
+            color: #55555c;
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            font-family: 'Inter', sans-serif;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        .btn-create {
+            background-color: #3b82f6;
+            color: white;
+        }
+
+        .btn-create:hover {
+            background-color: #2563eb;
+        }
+
+        .btn-join {
+            background-color: #10b981;
+            color: white;
+        }
+
+        .btn-join:hover {
+            background-color: #059669;
+        }
+
+        .divider {
+            width: 1px;
+            background-color: #2a2a30;
+        }
+
+        .error-message {
+            background-color: #ef4444;
+            color: white;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+
+        .all-rooms-wrapper {
+            margin-top: 32px;
+            padding-top: 24px;
+            border-top: 1px solid #2a2a30;
+            text-align: center;
+        }
+
+        .btn-all-rooms {
+            display: block;
+            width: 100%;
+            padding: 14px;
+            background-color: #0f0f11;
+            border: 1px solid #2a2a30;
+            border-radius: 8px;
+            color: #ffffff;
+            text-decoration: none;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: border-color 0.2s, background-color 0.2s;
+        }
+
+        .btn-all-rooms:hover {
+            border-color: #3b82f6;
+            background-color: #16161a;
+        }
+
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background-color: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(4px);
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            z-index: 1000;
+        }
+
+        .modal-box {
+            background-color: #1a1a1e;
+            border: 1px solid #2a2a30;
+            border-radius: 16px;
+            padding: 32px;
+            width: 100%;
+            max-width: 460px;
+            position: relative;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+            animation: modalFadeIn 0.2s ease-out;
+        }
+
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .modal-header h3 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #ffffff;
+        }
+
+        .modal-close {
+            width: auto;
+            padding: 4px 10px;
+            background: transparent;
+            color: #a0a0a5;
+            font-size: 1.5rem;
+            line-height: 1;
+        }
+
+        .modal-close:hover {
+            color: #ffffff;
+        }
+
+        .field-label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #a0a0a5;
+            margin-bottom: 8px;
+        }
+
+        @media (max-width: 600px) {
+            .forms-wrapper {
+                flex-direction: column;
+                gap: 30px;
+            }
+            .divider {
+                width: 100%;
+                height: 1px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Панель аккаунта -->
+        <div class="top-bar">
+            {% if user.is_authenticated %}
+                <a href="{% url 'profile' %}" class="profile-pill">
+                    {% if user.profile.avatar %}
+                        <img src="{{ user.profile.avatar.url }}" alt="Аватар" class="mini-avatar">
+                    {% else %}
+                        <div class="mini-avatar">{{ user.username|first|upper }}</div>
+                    {% endif %}
+                    <span>{{ user.profile.tag|default:user.username }}</span>
+                </a>
+            {% else %}
+                <a href="{% url 'login' %}" class="auth-link auth-login">Войти</a>
+                <a href="{% url 'register' %}" class="auth-link auth-register">Регистрация</a>
+            {% endif %}
+        </div>
+
+        <div class="title">Watch Party</div>
+
+        <div class="forms-wrapper">
+            <!-- Блок создания (открывает модальное окно) -->
+            <div class="form-block">
+                <div>
+                    <h2>Создать комнату</h2>
+                    <p class="create-hint">Укажите название, описание и вставьте ссылку на фильм или сериал для совместного просмотра.</p>
+                </div>
+                <button type="button" id="openCreateModalBtn" class="btn-create">+ Создать комнату</button>
+            </div>
+
+            <div class="divider"></div>
+
+            <!-- Блок входа -->
+            <div class="form-block">
+                <h2>Войти по коду</h2>
+
+                {% if error %}
+                    <div class="error-message">{{ error }}</div>
+                {% endif %}
+
+                <form method="POST" action="{% url 'join_room' %}">
+                    {% csrf_token %}
+                    <input type="text" name="query" placeholder="Название или код..." required autocomplete="off">
+                    <button type="submit" class="btn-join">Войти</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Кнопка перехода ко всем комнатам -->
+        <div class="all-rooms-wrapper">
+            <a href="/rooms/" class="btn-all-rooms">Все активные комнаты</a>
+        </div>
+    </div>
+
+    <div id="createRoomModal" class="modal-overlay">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3>Новая комната</h3>
+                <button type="button" id="closeCreateModalBtn" class="modal-close">&times;</button>
+            </div>
+
+            <form method="POST" action="{% url 'create_room' %}">
+                {% csrf_token %}
+
+                <label class="field-label" for="room_name">Название комнаты *</label>
+                <input type="text" id="room_name" name="room_name" placeholder="Например: Вечерний кинопоказ" required autocomplete="off">
+
+                <label class="field-label" for="description">Описание</label>
+                <input type="text" id="description" name="description" placeholder="О чем фильм или во сколько начинаем..." autocomplete="off">
+
+                <label class="field-label" for="video_url">Ссылка (URL) на фильм или сериал *</label>
+                <input type="url" id="video_url" name="video_url" placeholder="https://..." required autocomplete="off">
+
+                <button type="submit" class="btn-create">Создать и перейти в зал</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const modal = document.getElementById('createRoomModal');
+        const openBtn = document.getElementById('openCreateModalBtn');
+        const closeBtn = document.getElementById('closeCreateModalBtn');
+
+        openBtn.addEventListener('click', () => {
+            modal.style.display = 'flex';
+        });
+
+        closeBtn.addEventListener('click', () => {
+            modal.style.display = 'none';
+        });
+
+        window.addEventListener('click', (event) => {
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        });
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && modal.style.display === 'flex') {
+                modal.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>
