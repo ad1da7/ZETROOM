@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Watch Party | Личный кабинет</title>
-    <link href="https://googleapis.com" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -71,13 +71,18 @@
             margin-bottom: 30px;
         }
 
+        #avatar-preview-wrapper {
+            width: 104px;
+            height: 104px;
+            margin: 0 auto 14px;
+        }
+
         .avatar-large {
-            width: 100px;
-            height: 100px;
+            width: 104px;
+            height: 104px;
             border-radius: 50%;
             object-fit: cover;
             border: 2px solid #3b82f6;
-            margin: 0 auto 14px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -85,6 +90,12 @@
             font-size: 2.2rem;
             font-weight: 700;
             color: #3b82f6;
+        }
+
+        .preview-hint {
+            font-size: 0.8rem;
+            color: #71717a;
+            margin-bottom: 10px;
         }
 
         .username {
@@ -127,7 +138,7 @@
         }
 
         input:focus, textarea:focus {
-            border-color: #55555c;
+            border-color: #3b82f6;
         }
 
         input[type="file"] {
@@ -141,7 +152,6 @@
             cursor: pointer;
         }
 
-        /* Стилизация стандартного чекбокса "Очистить" у поля аватарки Django */
         input[type="checkbox"] {
             width: auto;
             margin-right: 6px;
@@ -196,26 +206,32 @@
         </div>
 
         <div class="profile-header">
-            {% if profile.avatar %}
-                <img src="{{ profile.avatar.url }}" alt="Аватар" class="avatar-large">
-            {% else %}
-                <div class="avatar-large">{{ user.username|first|upper }}</div>
-            {% endif %}
+            <div id="avatar-preview-wrapper">
+                {% if profile.avatar %}
+                    <img id="avatar-preview-img" src="{{ profile.avatar.url }}" alt="Аватар" class="avatar-large">
+                {% else %}
+                    <div class="avatar-large">{{ user.username|first|upper }}</div>
+                {% endif %}
+            </div>
+            <div class="preview-hint">Выберите новое фото ниже для мгновенного предпросмотра</div>
             <div class="username">{{ user.username }}</div>
-            <div class="user-tag">{{ profile.tag|default:"Тег не задан" }}</div>
+            <div class="user-tag">{{ profile.tag|default:"Никнейм / тег не задан" }}</div>
         </div>
 
         <form method="post" enctype="multipart/form-data">
             {% csrf_token %}
             {% for field in form %}
                 <div class="form-group">
-                    <label>{{ field.label }}</label>
+                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
                     {{ field }}
                     {{ field.errors }}
                 </div>
             {% endfor %}
-            <button type="submit" class="btn-save">Сохранить профиль</button>
+            <button type="submit" class="btn-save">Сохранить изменения</button>
         </form>
     </div>
+
+    <!-- Подключение JS для предпросмотра аватарки -->
+    <script src="{% static 'js/main.js' %}"></script>
 </body>
 </html>
