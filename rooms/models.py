@@ -13,6 +13,9 @@ class Room(models.Model):
     description = models.TextField(blank=True, default='')
     video_url = models.URLField(max_length=500, blank=True, default='')
 
+    # НОВОЕ ПОЛЕ: Приватная комната или нет (по умолчанию открытая)
+    is_private = models.BooleanField(default=False)
+
     def __str__(self):
         return self.name
 

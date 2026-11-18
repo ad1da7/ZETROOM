@@ -69,3 +69,16 @@ def room_detail(request, room_uuid):
         'participants': participants,
         'messages': messages
     })
+
+
+# НОВАЯ ФУНКЦИЯ ДЛЯ ВЫВОДА ВСЕХ КОМНАТ И ПОИСКА
+def all_rooms(request):
+    # Берем только открытые комнаты (is_private=False)
+    rooms = Room.objects.filter(is_private=False)
+
+    # Если есть поисковый запрос
+    query = request.GET.get('q')
+    if query:
+        rooms = rooms.filter(name__icontains=query)
+
+    return render(request, 'rooms_list.html', {'rooms': rooms})
