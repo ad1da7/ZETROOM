@@ -4,106 +4,36 @@
     <meta charset="UTF-8">
     <title>Комната: {{ room.name }}</title>
     <style>
-        /* Базовые стили для страницы */
-        body {
-            background: #0f0f11;
-            color: white;
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 20px;
-        }
-
-        /* Главный контейнер с двумя колонками */
-        .main {
-            display: flex;
-            gap: 20px;
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        /* Блок для видео (занимает 3/4 ширины) */
-        .video {
-            flex: 3;
-            background: #000;
-            aspect-ratio: 16/9;
-            border: 2px dashed #333;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            border-radius: 10px;
-        }
-
-        /* Боковая панель для чата (занимает 1/4 ширины) */
-        .sidebar {
-            flex: 1;
-            background: #1a1a1e;
-            border-radius: 10px;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            height: 60vh;
-        }
-
-        /* Окно с историей сообщений */
-        .chat-box {
-            flex: 1;
-            overflow-y: auto;
-            background: #0f0f11;
-            border-radius: 5px;
-            padding: 10px;
-            margin-bottom: 15px;
-        }
-
-        /* Форма отправки сообщения */
-        .chat-form {
-            display: flex;
-            gap: 10px;
-        }
-
-        /* Поле ввода */
-        .chat-form input {
-            flex: 1;
-            padding: 10px;
-            border-radius: 5px;
-            border: 1px solid #333;
-            background: #0f0f11;
-            color: white;
-        }
-
-        /* Кнопка отправки */
-        .chat-form button {
-            background: #3b82f6;
-            color: white;
-            border: none;
-            padding: 10px 15px;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-
-        /* Стили для самих сообщений (их будет добавлять JS) */
-        .message-item {
-            background: #2a2a30;
-            padding: 8px;
-            border-radius: 5px;
-            margin-bottom: 8px;
-            font-size: 0.9rem;
-        }
-        .message-author {
-            color: #3b82f6;
-            font-weight: bold;
-        }
+        body { background: #0f0f11; color: white; font-family: Arial, sans-serif; margin: 0; padding: 20px; }
+        .main { display: flex; gap: 20px; max-width: 1200px; margin: 0 auto; }
+        .video { flex: 3; background: #000; border-radius: 10px; overflow: hidden; aspect-ratio: 16/9; }
+        .sidebar { flex: 1; background: #1a1a1e; border-radius: 10px; padding: 20px; display: flex; flex-direction: column; height: 60vh; }
+        .sidebar h3 { margin-top: 0; color: #3b82f6; }
+        .chat-box { flex: 1; overflow-y: auto; background: #0f0f11; border-radius: 5px; padding: 10px; margin-bottom: 15px; }
+        .chat-form { display: flex; gap: 10px; }
+        .chat-form input { flex: 1; padding: 10px; border-radius: 5px; border: 1px solid #333; background: #0f0f11; color: white; }
+        .chat-form button { background: #3b82f6; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; }
+        .message-item { background: #2a2a30; padding: 8px; border-radius: 5px; margin-bottom: 8px; font-size: 0.9rem; }
+        .message-author { color: #3b82f6; font-weight: bold; }
     </style>
 </head>
 <body>
     <h1 style="text-align: center;">{{ room.name }}</h1>
-
     <div class="main">
-        <!-- Левая часть: плеер (заглушка) -->
+        <!-- Настоящий плеер -->
         <div class="video">
-            <h2 style="color: #555;"></h2>
+            {% if room.video_url %}
+                <video id="video-player" controls style="width: 100%; height: 100%;">
+                    <source src="{{ room.video_url }}" type="video/mp4">
+                </video>
+            {% else %}
+                <div style="display: flex; justify-content: center; align-items: center; height: 100%;">
+                    <h2 style="color: #555;">Ссылка на видео не добавлена</h2>
+                </div>
+            {% endif %}
         </div>
 
-        <!-- Правая часть: чат -->
+        <!-- Чат -->
         <div class="sidebar">
             <h3>Участники ({{ participants|length }})</h3>
             <ul style="padding-left: 20px; margin-bottom: 20px; color: #888; font-size: 0.9rem;">
@@ -113,7 +43,7 @@
             </ul>
 
             <h3>Чат</h3>
-            <div class="chat-box">
+            <div class="chat-box" id="chat-box">
                 {% for msg in messages %}
                     <div class="msg">
                         <span class="author">{{ msg.user }}:</span> {{ msg.text }}
@@ -123,19 +53,13 @@
                 {% endfor %}
             </div>
 
-            <!-- Форма отправки сообщения -->
-            <form method="POST" class="chat-form">
-                {% csrf_token %}
-                <input type="text" name="message_text" placeholder="Ваше сообщение..." required autocomplete="off">
+            <form class="chat-form" id="chat-form">
+                <input type="text" id="chat-input" placeholder="Ваше сообщение..." autocomplete="off">
                 <button type="submit">➤</button>
             </form>
         </div>
     </div>
-
-    <!-- Передаем UUID комнаты в JavaScript для подключения к WebSocket -->
     {{ room.uuid|json_script:"room-uuid" }}
-
-    <!-- Подключаем скрипт, который напишет Участник 3 -->
     <script src="/static/js/sync_player.js"></script>
 </body>
 </html>
