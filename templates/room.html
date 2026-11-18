@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -35,8 +36,8 @@
 
         <!-- Чат -->
         <div class="sidebar">
-            <h3>Участники ({{ participants|length }})</h3>
-            <ul style="padding-left: 20px; margin-bottom: 20px; color: #888; font-size: 0.9rem;">
+            <h3>Участники (<span id="participants-count">{{ participants|length }}</span>)</h3>
+            <ul id="participants-list" style="padding-left: 20px; margin-bottom: 20px; color: #888; font-size: 0.9rem;">
                 {% for p in participants %}
                     <li>{{ p.user.username }}</li>
                 {% endfor %}
@@ -45,11 +46,11 @@
             <h3>Чат</h3>
             <div class="chat-box" id="chat-box">
                 {% for msg in messages %}
-                    <div class="msg">
-                        <span class="author">{{ msg.user }}:</span> {{ msg.text }}
+                    <div class="message-item">
+                        <span class="message-author">{{ msg.user }}:</span> {{ msg.text }}
                     </div>
                 {% empty %}
-                    <p style="color: gray; text-align: center;">Пока тихо...</p>
+                    <p id="empty-chat-msg" style="color: gray; text-align: center;">Пока тихо...</p>
                 {% endfor %}
             </div>
 
