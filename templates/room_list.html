@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Watch Party | Активные комнаты</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f0f11;
+            color: #ffffff;
+            min-height: 100vh;
+            padding: 32px 20px;
+        }
+
+        .container {
+            max-width: 1040px;
+            margin: 0 auto;
+        }
+
+        .header-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 28px;
+            padding-bottom: 18px;
+            border-bottom: 1px solid #2a2a30;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .header-bar h1 {
+            font-size: 1.7rem;
+            font-weight: 700;
+        }
+
+        .back-btn {
+            text-decoration: none;
+            color: #a0a0a5;
+            background-color: #1a1a1e;
+            border: 1px solid #2a2a30;
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: color 0.2s, border-color 0.2s;
+        }
+
+        .back-btn:hover {
+            color: #ffffff;
+            border-color: #55555c;
+        }
+
+        .search-form {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 32px;
+            background-color: #1a1a1e;
+            border: 1px solid #2a2a30;
+            padding: 16px;
+            border-radius: 12px;
+        }
+
+        .search-form input {
+            flex: 1;
+            padding: 12px 16px;
+            background-color: #0f0f11;
+            border: 1px solid #2a2a30;
+            border-radius: 8px;
+            color: #ffffff;
+            font-family: 'Inter', sans-serif;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .search-form input:focus {
+            border-color: #3b82f6;
+        }
+
+        .search-form button {
+            padding: 12px 24px;
+            background-color: #3b82f6;
+            color: #ffffff;
+            border: none;
+            border-radius: 8px;
+            font-family: 'Inter', sans-serif;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .search-form button:hover {
+            background-color: #2563eb;
+        }
+
+        .rooms-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .room-card {
+            background-color: #1a1a1e;
+            border: 1px solid #2a2a30;
+            border-radius: 14px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            transition: transform 0.15s, border-color 0.2s;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+        }
+
+        .room-card:hover {
+            transform: translateY(-3px);
+            border-color: #3b82f6;
+        }
+
+        .room-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            color: #ffffff;
+        }
+
+        .room-desc {
+            font-size: 0.92rem;
+            color: #a0a0a5;
+            line-height: 1.5;
+            margin-bottom: 20px;
+            min-height: 42px;
+        }
+
+        .room-meta {
+            font-size: 0.8rem;
+            color: #71717a;
+            margin-bottom: 16px;
+        }
+
+        .btn-enter {
+            display: block;
+            text-align: center;
+            text-decoration: none;
+            background-color: #10b981;
+            color: #ffffff;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            transition: background-color 0.2s;
+        }
+
+        .btn-enter:hover {
+            background-color: #059669;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            background-color: #1a1a1e;
+            border: 1px solid #2a2a30;
+            border-radius: 14px;
+            color: #a0a0a5;
+        }
+
+        @media (max-width: 600px) {
+            .search-form {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header-bar">
+            <h1>Все активные комнаты</h1>
+            <a href="{% url 'index' %}" class="back-btn">← На главную</a>
+        </div>
+
+        <!-- Форма поиска (работает и через GET, и мгновенно через main.js) -->
+        <form method="GET" action="{% url 'all_rooms' %}" class="search-form">
+            <input
+                type="text"
+                id="live-room-search"
+                name="q"
+                value="{{ query|default:'' }}"
+                placeholder="Введите название комнаты для поиска..."
+                autocomplete="off"
+            >
+            <button type="submit">Найти</button>
+        </form>
+
+        <!-- Сетка с карточками комнат -->
+        {% if rooms %}
+            <div class="rooms-grid" id="rooms-grid">
+                {% for room in rooms %}
+                    <div class="room-card" data-room-name="{{ room.name|lower }}">
+                        <div>
+                            <h2 class="room-title">{{ room.name }}</h2>
+                            <p class="room-desc">
+                                {{ room.description|default:"Описание комнаты не указано." }}
+                            </p>
+                            <div class="room-meta">
+                                Хост: {{ room.host.username|default:"Гость" }}
+                            </div>
+                        </div>
+                        <a href="{% url 'room_detail' room_uuid=room.uuid %}" class="btn-enter">Войти</a>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <p>Открытых комнат пока нет или по вашему запросу ничего не найдено.</p>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Подключение живого поиска Участника 3 -->
+    <script src="{% static 'js/main.js' %}"></script>
+</body>
+</html>

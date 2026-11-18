@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Watch Party | Кинозал</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://googleapis.com" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -209,6 +209,33 @@
             font-size: 0.9rem;
         }
 
+        /* Кнопка перехода ко всем комнатам */
+        .all-rooms-wrapper {
+            margin-top: 32px;
+            padding-top: 24px;
+            border-top: 1px solid #2a2a30;
+            text-align: center;
+        }
+
+        .btn-all-rooms {
+            display: block;
+            width: 100%;
+            padding: 14px;
+            background-color: #0f0f11;
+            border: 1px solid #2a2a30;
+            border-radius: 8px;
+            color: #ffffff;
+            text-decoration: none;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: border-color 0.2s, background-color 0.2s;
+        }
+
+        .btn-all-rooms:hover {
+            border-color: #3b82f6;
+            background-color: #16161a;
+        }
+
         .modal-overlay {
             display: none;
             position: fixed;
@@ -332,57 +359,4 @@
                 </form>
             </div>
         </div>
-    </div>
 
-    <!-- Модальное окно создания комнаты -->
-    <div id="createRoomModal" class="modal-overlay">
-        <div class="modal-box">
-            <div class="modal-header">
-                <h3>Новая комната</h3>
-                <button type="button" id="closeCreateModalBtn" class="modal-close">&times;</button>
-            </div>
-
-            <form method="POST" action="{% url 'create_room' %}">
-                {% csrf_token %}
-
-                <label class="field-label" for="room_name">Название комнаты *</label>
-                <input type="text" id="room_name" name="room_name" placeholder="Например: Вечерний кинопоказ" required autocomplete="off">
-
-                <label class="field-label" for="description">Описание</label>
-                <textarea id="description" name="description" rows="3" placeholder="О чем фильм или во сколько начинаем..."></textarea>
-
-                <label class="field-label" for="video_url">Ссылка (URL) на фильм или сериал *</label>
-                <input type="url" id="video_url" name="video_url" placeholder="https://..." required autocomplete="off">
-
-                <button type="submit" class="btn-create">Создать и перейти в зал</button>
-            </form>
-        </div>
-    </div>
-
-    <script>
-        const modal = document.getElementById('createRoomModal');
-        const openBtn = document.getElementById('openCreateModalBtn');
-        const closeBtn = document.getElementById('closeCreateModalBtn');
-
-        openBtn.addEventListener('click', () => {
-            modal.style.display = 'flex';
-        });
-
-        closeBtn.addEventListener('click', () => {
-            modal.style.display = 'none';
-        });
-
-        window.addEventListener('click', (event) => {
-            if (event.target === modal) {
-                modal.style.display = 'none';
-            }
-        });
-
-        document.addEventListener('keydown', (event) => {
-            if (event.key === 'Escape' && modal.style.display === 'flex') {
-                modal.style.display = 'none';
-            }
-        });
-    </script>
-</body>
-</html>
