@@ -7,6 +7,19 @@ def index(request):
     return render(request, 'index.html')
 
 
+def all_rooms(request):
+    query = request.GET.get('q', '').strip()
+    rooms = Room.objects.filter(is_private=False).order_by('-created_at')
+
+    if query:
+        rooms = rooms.filter(name__icontains=query)
+
+    return render(request, 'rooms_list.html', {
+        'rooms': rooms,
+        'query': query
+    })
+
+
 def create_room(request):
     if request.method == 'POST':
         room_name = request.POST.get('room_name')
@@ -69,16 +82,3 @@ def room_detail(request, room_uuid):
         'participants': participants,
         'messages': messages
     })
-
-
-# НОВАЯ ФУНКЦИЯ ДЛЯ ВЫВОДА ВСЕХ КОМНАТ И ПОИСКА
-def all_rooms(request):
-    # Берем только открытые комнаты (is_private=False)
-    rooms = Room.objects.filter(is_private=False)
-
-    # Если есть поисковый запрос
-    query = request.GET.get('q')
-    if query:
-        rooms = rooms.filter(name__icontains=query)
-
-    return render(request, 'rooms_list.html', {'rooms': rooms})
