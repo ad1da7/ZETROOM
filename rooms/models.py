@@ -9,9 +9,9 @@ class Room(models.Model):
     host = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
-    # Поля, которые добавил Тимур
     description = models.TextField(blank=True, default='')
     video_url = models.URLField(max_length=500, blank=True, default='')
+    is_private = models.BooleanField(default=False)
 
     def __str__(self):
         return self.name
@@ -34,3 +34,5 @@ class Message(models.Model):
 
     def __str__(self):
         return f"Сообщение от {self.user}"
+
+#
