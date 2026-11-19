@@ -1,4 +1,5 @@
 document.addEventListener("DOMContentLoaded", () => {
+    // 1. Живой поиск в лобби активных комнат
     const liveSearchInput = document.getElementById("live-room-search") || document.querySelector('input[name="q"]');
     const roomCards = document.querySelectorAll(".room-card");
 
@@ -18,6 +19,8 @@ document.addEventListener("DOMContentLoaded", () => {
             });
         });
     }
+
+    // 2. Предпросмотр аватарки в личном кабинете
     const avatarInput = document.querySelector('input[type="file"][name="avatar"]') || document.getElementById("id_avatar");
     const avatarPreviewContainer = document.getElementById("avatar-preview-wrapper");
 
@@ -45,6 +48,32 @@ document.addEventListener("DOMContentLoaded", () => {
                 imgElement.src = e.target.result;
             };
             reader.readAsDataURL(file);
+        });
+    }
+
+    // 3. Модальное окно создания комнаты на главной странице
+    const openCreateBtn = document.getElementById("openCreateModalBtn") || document.querySelector("button.btn-create[type='button']");
+    const createModal = document.getElementById("createRoomModal") || document.querySelector(".modal-overlay");
+    const closeCreateBtn = document.getElementById("closeCreateModalBtn") || document.querySelector(".modal-close");
+
+    if (openCreateBtn && createModal) {
+        openCreateBtn.addEventListener("click", (e) => {
+            e.preventDefault();
+            createModal.style.display = "flex";
+        });
+    }
+
+    if (closeCreateBtn && createModal) {
+        closeCreateBtn.addEventListener("click", () => {
+            createModal.style.display = "none";
+        });
+    }
+
+    if (createModal) {
+        createModal.addEventListener("click", (e) => {
+            if (e.target === createModal) {
+                createModal.style.display = "none";
+            }
         });
     }
 });
