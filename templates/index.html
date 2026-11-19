@@ -1,247 +1,373 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Watch Party | Кинозал</title>
+    <title>ZetRoom | Кинозалы</title>
     <link href="https://googleapis.com" rel="stylesheet">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * { margin: 0; padding: 0; box-sizing: border-box; border-radius: 0 !important; }
 
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #0f0f11;
-            color: #ffffff;
             min-height: 100vh;
+            background-color: #f4e6ea;
+            color: #161618;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        .palm-left, .palm-right {
+            position: fixed;
+            bottom: 0;
+            z-index: 0;
+            pointer-events: none;
+            opacity: 0.08;
+        }
+        .palm-left { left: -20px; width: 320px; }
+        .palm-right { right: -20px; width: 340px; transform: scaleX(-1); }
+
+        .navbar {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background-color: #141416;
+            border-bottom: 3px solid #d94e78;
+            padding: 0 32px;
+            height: 68px;
             display: flex;
-            justify-content: center;
+            justify-content: space-between;
             align-items: center;
-            padding: 20px;
         }
 
-        .container {
-            background-color: #1a1a1e;
-            border: 1px solid #2a2a30;
-            border-radius: 16px;
-            padding: 40px;
-            width: 100%;
-            max-width: 800px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-        }
-
-        .top-bar {
+        .brand-logo {
+            font-family: 'Oswald', sans-serif;
+            font-size: 1.8rem;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            text-decoration: none;
+            color: #ffffff;
             display: flex;
-            justify-content: flex-end;
             align-items: center;
-            margin-bottom: 24px;
-            padding-bottom: 16px;
-            border-bottom: 1px solid #2a2a30;
-            gap: 12px;
         }
 
-        .profile-pill {
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .nav-btn {
+            text-decoration: none;
+            background: transparent;
+            color: #d4d4d8;
+            font-family: 'Oswald', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 600;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            padding: 10px 18px;
+            cursor: pointer;
+            border: 1px solid #2e2e32;
+            transition: all 0.15s ease;
+        }
+
+        .nav-btn:hover, .nav-btn.active {
+            background-color: #ffffff;
+            color: #141416;
+            border-color: #ffffff;
+        }
+
+        .nav-btn-accent {
+            background-color: #d94e78;
+            color: #ffffff;
+            border-color: #d94e78;
+        }
+
+        .nav-btn-accent:hover {
+            background-color: #b83b62;
+            color: #ffffff;
+            border-color: #b83b62;
+        }
+
+        .nav-btn-admin {
+            background-color: #27272a;
+            color: #fbbf24;
+            border-color: #fbbf24;
+        }
+
+        .nav-btn-admin:hover {
+            background-color: #fbbf24;
+            color: #141416;
+        }
+
+        .profile-chip {
             display: inline-flex;
             align-items: center;
             gap: 10px;
-            background-color: #0f0f11;
-            border: 1px solid #2a2a30;
+            background: #222225;
             padding: 6px 14px 6px 6px;
-            border-radius: 999px;
             text-decoration: none;
             color: #ffffff;
+            font-family: 'Oswald', sans-serif;
+            letter-spacing: 1px;
             font-size: 0.9rem;
-            font-weight: 600;
-            transition: border-color 0.2s, background-color 0.2s;
+            border: 1px solid #3f3f46;
+            cursor: pointer;
         }
 
-        .profile-pill:hover {
-            border-color: #55555c;
-            background-color: #222227;
-        }
+        .profile-chip:hover { border-color: #d94e78; }
 
-        .mini-avatar {
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
+        .chip-avatar {
+            width: 28px;
+            height: 28px;
             object-fit: cover;
-            background-color: #3b82f6;
+            background: #d94e78;
+            color: #fff;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 0.85rem;
             font-weight: 700;
-            color: #fff;
+        }
+        .main-wrapper {
+            position: relative;
+            z-index: 1;
+            max-width: 1200px;
+            margin: 40px auto;
+            padding: 0 24px;
         }
 
-        .auth-link {
-            text-decoration: none;
-            font-size: 0.9rem;
-            font-weight: 600;
-            padding: 8px 16px;
-            border-radius: 8px;
-            transition: background-color 0.2s, color 0.2s;
-        }
-
-        .auth-login {
-            color: #a0a0a5;
-            border: 1px solid #2a2a30;
-        }
-
-        .auth-login:hover {
-            color: #ffffff;
-            border-color: #55555c;
-        }
-
-        .auth-register {
-            background-color: #3b82f6;
-            color: #ffffff;
-        }
-
-        .auth-register:hover {
-            background-color: #2563eb;
-        }
-
-        .title {
-            text-align: center;
-            font-size: 1.8rem;
-            font-weight: 700;
-            margin-bottom: 40px;
-            color: #ffffff;
-        }
-
-        .forms-wrapper {
+        .hero-header {
             display: flex;
-            gap: 40px;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-bottom: 32px;
+            padding-bottom: 16px;
+            border-bottom: 2px solid #141416;
+            gap: 20px;
+            flex-wrap: wrap;
         }
 
-        .form-block {
+        .hero-title {
+            font-family: 'Oswald', sans-serif;
+            font-size: 2.2rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: #141416;
+        }
+
+        .hero-subtitle {
+            color: #52525b;
+            font-size: 0.9rem;
+            margin-top: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .filter-form {
+            display: flex;
+            gap: 8px;
+            width: 100%;
+            max-width: 420px;
+        }
+
+        .search-bar {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #141416;
+            background: #ffffff;
+            color: #141416;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.95rem;
+            outline: none;
+        }
+
+        .search-bar:focus { border-color: #d94e78; }
+
+        .btn-filter {
+            background: #141416;
+            color: #ffffff;
+            border: 2px solid #141416;
+            padding: 0 18px;
+            font-family: 'Oswald', sans-serif;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            cursor: pointer;
+        }
+
+        .btn-filter:hover { background: #d94e78; border-color: #d94e78; }
+
+        .alert-banner {
+            background: #141416;
+            color: #ff4d79;
+            border-left: 4px solid #d94e78;
+            padding: 14px 20px;
+            margin-bottom: 24px;
+            font-family: 'Oswald', sans-serif;
+            letter-spacing: 1px;
+        }
+
+        .rooms-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 24px;
+        }
+
+        .room-card {
+            background: #ffffff;
+            border: 2px solid #141416;
+            box-shadow: 6px 6px 0px #141416;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        .room-card:hover {
+            transform: translate(-2px, -2px);
+            box-shadow: 8px 8px 0px #d94e78;
+        }
+
+        .room-preview {
+            height: 145px;
+            background: linear-gradient(135deg, #272226 0%, #4a2c38 60%, #d94e78 100%);
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-bottom: 2px solid #141416;
+        }
+
+        .live-pill {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            background: #141416;
+            color: #ffffff;
+            font-family: 'Oswald', sans-serif;
+            font-size: 0.75rem;
+            letter-spacing: 1px;
+            padding: 4px 10px;
+            border: 1px solid #d94e78;
+        }
+
+        .users-pill {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: #ffffff;
+            color: #141416;
+            font-family: 'Oswald', sans-serif;
+            font-size: 0.8rem;
+            font-weight: 700;
+            padding: 3px 10px;
+        }
+
+        .play-box {
+            width: 48px;
+            height: 48px;
+            background: #d94e78;
+            color: #ffffff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.2rem;
+            border: 2px solid #ffffff;
+        }
+
+        .room-body {
+            padding: 20px;
             flex: 1;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
         }
 
-        .form-block h2 {
-            font-size: 1.2rem;
-            font-weight: 600;
-            margin-bottom: 20px;
-            color: #a0a0a5;
-            text-align: center;
+        .room-title {
+            font-family: 'Oswald', sans-serif;
+            font-size: 1.3rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #141416;
+            margin-bottom: 6px;
         }
 
-        .create-hint {
+        .room-desc {
+            font-size: 0.88rem;
+            color: #52525b;
+            margin-bottom: 16px;
+            line-height: 1.4;
+        }
+
+        .room-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 14px;
+            border-top: 1px solid #e4e4e7;
+            gap: 8px;
+        }
+
+        .host-name {
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-transform: uppercase;
             color: #71717a;
-            font-size: 0.9rem;
-            text-align: center;
-            margin-bottom: 20px;
-            line-height: 1.5;
         }
 
-        input, textarea {
-            width: 100%;
-            padding: 14px 16px;
-            margin-bottom: 16px;
-            background-color: #0f0f11;
-            border: 1px solid #2a2a30;
-            border-radius: 8px;
-            color: #ffffff;
-            font-family: 'Inter', sans-serif;
-            font-size: 1rem;
-            outline: none;
-            transition: border-color 0.2s;
-            resize: vertical;
-        }
+        .card-actions { display: flex; gap: 6px; }
 
-        input:focus, textarea:focus {
-            border-color: #55555c;
-        }
-
-        input::placeholder, textarea::placeholder {
-            color: #55555c;
-        }
-
-        button {
-            width: 100%;
-            padding: 14px;
-            border: none;
-            border-radius: 8px;
-            font-family: 'Inter', sans-serif;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background-color 0.2s, transform 0.1s;
-        }
-
-        button:active {
-            transform: scale(0.98);
-        }
-
-        .btn-create {
-            background-color: #3b82f6;
-            color: white;
-        }
-
-        .btn-create:hover {
-            background-color: #2563eb;
-        }
-
-        .btn-join {
-            background-color: #10b981;
-            color: white;
-        }
-
-        .btn-join:hover {
-            background-color: #059669;
-        }
-
-        .divider {
-            width: 1px;
-            background-color: #2a2a30;
-        }
-
-        .error-message {
-            background-color: #ef4444;
-            color: white;
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 16px;
-            text-align: center;
-            font-size: 0.9rem;
-        }
-
-        /* Кнопка перехода ко всем комнатам */
-        .all-rooms-wrapper {
-            margin-top: 32px;
-            padding-top: 24px;
-            border-top: 1px solid #2a2a30;
-            text-align: center;
-        }
-
-        .btn-all-rooms {
-            display: block;
-            width: 100%;
-            padding: 14px;
-            background-color: #0f0f11;
-            border: 1px solid #2a2a30;
-            border-radius: 8px;
-            color: #ffffff;
+        .btn-card-enter {
             text-decoration: none;
-            font-size: 1rem;
-            font-weight: 600;
-            transition: border-color 0.2s, background-color 0.2s;
+            background: #141416;
+            color: #ffffff;
+            font-family: 'Oswald', sans-serif;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            padding: 8px 16px;
         }
 
-        .btn-all-rooms:hover {
-            border-color: #3b82f6;
-            background-color: #16161a;
+        .btn-card-enter:hover { background: #d94e78; }
+
+        .btn-card-delete {
+            text-decoration: none;
+            background: #dc2626;
+            color: #ffffff;
+            font-family: 'Oswald', sans-serif;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            padding: 8px 12px;
         }
+
+        .btn-card-delete:hover { background: #991b1b; }
+
+        .empty-lobby {
+            background: #ffffff;
+            border: 2px solid #141416;
+            box-shadow: 6px 6px 0px #141416;
+            padding: 60px 24px;
+            text-align: center;
+        }
+
+        .empty-lobby h2 {
+            font-family: 'Oswald', sans-serif;
+            font-size: 1.6rem;
+            text-transform: uppercase;
+            color: #141416;
+            margin-bottom: 10px;
+        }
+
+        .empty-lobby p { color: #52525b; margin-bottom: 24px; }
 
         .modal-overlay {
             display: none;
             position: fixed;
             inset: 0;
-            background-color: rgba(0, 0, 0, 0.75);
-            backdrop-filter: blur(4px);
+            background: rgba(20, 20, 22, 0.75);
             justify-content: center;
             align-items: center;
             padding: 20px;
@@ -249,114 +375,256 @@
         }
 
         .modal-box {
-            background-color: #1a1a1e;
-            border: 1px solid #2a2a30;
-            border-radius: 16px;
+            background: #ffffff;
+            border: 3px solid #141416;
+            box-shadow: 10px 10px 0px #d94e78;
             padding: 32px;
             width: 100%;
-            max-width: 460px;
-            position: relative;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
-            animation: modalFadeIn 0.2s ease-out;
-        }
-
-        @keyframes modalFadeIn {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
+            max-width: 440px;
         }
 
         .modal-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 24px;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #141416;
         }
 
         .modal-header h3 {
-            font-size: 1.3rem;
-            font-weight: 700;
-            color: #ffffff;
+            font-family: 'Oswald', sans-serif;
+            font-size: 1.4rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #141416;
         }
 
         .modal-close {
-            width: auto;
-            padding: 4px 10px;
-            background: transparent;
-            color: #a0a0a5;
-            font-size: 1.5rem;
-            line-height: 1;
-        }
-
-        .modal-close:hover {
-            color: #ffffff;
+            background: none;
+            border: none;
+            font-size: 1.6rem;
+            color: #141416;
+            cursor: pointer;
         }
 
         .field-label {
             display: block;
+            font-family: 'Oswald', sans-serif;
             font-size: 0.85rem;
-            font-weight: 600;
-            color: #a0a0a5;
-            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #141416;
+            margin-bottom: 6px;
         }
 
-        @media (max-width: 600px) {
-            .forms-wrapper {
-                flex-direction: column;
-                gap: 30px;
-            }
-            .divider {
-                width: 100%;
-                height: 1px;
-            }
+        .modal-input {
+            width: 100%;
+            padding: 12px 14px;
+            margin-bottom: 16px;
+            border: 2px solid #141416;
+            background: #f4e6ea;
+            color: #141416;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.95rem;
+            outline: none;
         }
+
+        .modal-input:focus { border-color: #d94e78; background: #ffffff; }
+
+        .btn-submit-modal {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            background: #141416;
+            color: #ffffff;
+            font-family: 'Oswald', sans-serif;
+            font-size: 1rem;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            cursor: pointer;
+        }
+
+        .btn-submit-modal:hover { background: #d94e78; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <!-- Панель аккаунта -->
-        <div class="top-bar">
+    <svg class="palm-left" viewBox="0 0 200 260" fill="#141416">
+        <path d="M92 260 C95 190 85 130 70 80 L82 78 C98 130 108 190 105 260 Z"/>
+        <path d="M75 82 C45 65 15 75 0 95 C22 86 48 84 72 92 Z"/>
+        <path d="M76 78 C50 45 20 40 2 52 C25 52 50 60 72 84 Z"/>
+        <path d="M80 76 C75 35 55 12 35 5 C52 20 65 45 75 80 Z"/>
+        <path d="M82 78 C110 45 145 45 168 62 C142 56 112 62 84 85 Z"/>
+    </svg>
+    <svg class="palm-right" viewBox="0 0 200 260" fill="#141416">
+        <path d="M92 260 C95 190 85 130 70 80 L82 78 C98 130 108 190 105 260 Z"/>
+        <path d="M75 82 C45 65 15 75 0 95 C22 86 48 84 72 92 Z"/>
+        <path d="M76 78 C50 45 20 40 2 52 C25 52 50 60 72 84 Z"/>
+        <path d="M80 76 C75 35 55 12 35 5 C52 20 65 45 75 80 Z"/>
+        <path d="M82 78 C110 45 145 45 168 62 C142 56 112 62 84 85 Z"/>
+    </svg>
+
+    <nav class="navbar">
+        <a href="{% url 'index' %}" class="brand-logo">ZetRoom</a>
+
+        <div class="nav-links">
+            <a href="{% url 'index' %}" class="nav-btn active">Главная</a>
+
             {% if user.is_authenticated %}
-                <a href="{% url 'profile' %}" class="profile-pill">
+                <button type="button" class="nav-btn nav-btn-accent" onclick="document.getElementById('createRoomModal').style.display='flex'">+ Создать</button>
+                <button type="button" class="nav-btn" onclick="document.getElementById('joinRoomModal').style.display='flex'">Присоединиться</button>
+
+                {% if user.is_staff or user.is_superuser %}
+                    <a href="/admin/" class="nav-btn nav-btn-admin">Админ-панель</a>
+                {% endif %}
+
+                <a href="{% url 'profile' %}" class="profile-chip">
                     {% if user.profile.avatar %}
-                        <img src="{{ user.profile.avatar.url }}" alt="Аватар" class="mini-avatar">
+                        <img src="{{ user.profile.avatar.url }}" alt="Аватар" class="chip-avatar">
                     {% else %}
-                        <div class="mini-avatar">{{ user.username|first|upper }}</div>
+                        <div class="chip-avatar">{{ user.username|first|upper }}</div>
                     {% endif %}
                     <span>{{ user.profile.tag|default:user.username }}</span>
                 </a>
             {% else %}
-                <a href="{% url 'login' %}" class="auth-link auth-login">Войти</a>
-                <a href="{% url 'register' %}" class="auth-link auth-register">Регистрация</a>
+                <a href="{% url 'login' %}" class="nav-btn nav-btn-accent">+ Создать</a>
+                <a href="{% url 'login' %}" class="nav-btn">Присоединиться</a>
+                <a href="{% url 'login' %}" class="nav-btn">Войти</a>
+                <a href="{% url 'register' %}" class="nav-btn nav-btn-accent">Регистрация</a>
             {% endif %}
         </div>
+    </nav>
 
-        <div class="title">Watch Party</div>
-
-        <div class="forms-wrapper">
-            <!-- Блок создания (открывает модальное окно) -->
-            <div class="form-block">
-                <div>
-                    <h2>Создать комнату</h2>
-                    <p class="create-hint">Укажите название, описание и вставьте ссылку на фильм или сериал для совместного просмотра.</p>
-                </div>
-                <button type="button" id="openCreateModalBtn" class="btn-create">+ Создать комнату</button>
+    <main class="main-wrapper">
+        <div class="hero-header">
+            <div>
+                <h1 class="hero-title">Активные сессии</h1>
+                <p class="hero-subtitle">Прямые трансляции и совместные кинозалы ZetRoom</p>
             </div>
 
-            <div class="divider"></div>
-
-            <!-- Блок входа -->
-            <div class="form-block">
-                <h2>Войти по коду</h2>
-
-                {% if error %}
-                    <div class="error-message">{{ error }}</div>
-                {% endif %}
-
-                <form method="POST" action="{% url 'join_room' %}">
-                    {% csrf_token %}
-                    <input type="text" name="query" placeholder="Название или код..." required autocomplete="off">
-                    <button type="submit" class="btn-join">Войти</button>
-                </form>
-            </div>
+            <form method="GET" action="{% url 'index' %}" class="filter-form">
+                <input type="text" id="live-room-search" name="q" value="{{ query|default:'' }}" class="search-bar" placeholder="ПОИСК ПО НАЗВАНИЮ..." autocomplete="off">
+                <button type="submit" class="btn-filter">Найти</button>
+            </form>
         </div>
 
+        {% if error %}
+            <div class="alert-banner">{{ error }}</div>
+        {% endif %}
+
+        {% if rooms %}
+            <div class="rooms-grid" id="rooms-grid">
+                {% for room in rooms %}
+                    <div class="room-card" data-room-name="{{ room.name|lower }}">
+                        <div class="room-preview">
+                            <span class="live-pill">● В ЭФИРЕ</span>
+                            <span class="users-pill">ЗРИТЕЛЕЙ: {{ room.participants.count }}</span>
+                            <div class="play-box">▶</div>
+                        </div>
+                        <div class="room-body">
+                            <div>
+                                <div class="room-title">{{ room.name }}</div>
+                                <div class="room-desc">{{ room.description|default:"Совместный просмотр видео в ZetRoom." }}</div>
+                            </div>
+                            <div class="room-footer">
+                                <span class="host-name">ХОСТ: {{ room.host.username }}</span>
+                                <div class="card-actions">
+                                    {% if user.is_authenticated %}
+                                        <a href="{% url 'room_detail' room.uuid %}" class="btn-card-enter">Войти</a>
+                                        {% if user.is_staff or user.is_superuser or room.host == user %}
+                                            <a href="{% url 'delete_room' room.uuid %}" class="btn-card-delete" onclick="return confirm('Удалить эту комнату?')">Удалить</a>
+                                        {% endif %}
+                                    {% else %}
+                                        <a href="{% url 'login' %}" class="btn-card-enter">Войти [ЗАКРЫТО]</a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+
+            <div class="empty-lobby" id="no-filter-results" style="display: none;">
+                <h2>Ничего не найдено</h2>
+                <p>Попробуйте изменить поисковый запрос.</p>
+            </div>
+        {% else %}
+            <div class="empty-lobby">
+                <h2>Пока нет активных комнат</h2>
+                <p>Создайте первую сессию и пригласите зрителей.</p>
+                {% if user.is_authenticated %}
+                    <button type="button" class="nav-btn nav-btn-accent" onclick="document.getElementById('createRoomModal').style.display='flex'">+ Создать комнату</button>
+                {% else %}
+                    <a href="{% url 'register' %}" class="nav-btn nav-btn-accent">Регистрация для входа</a>
+                {% endif %}
+            </div>
+        {% endif %}
+    </main>
+
+    <div class="modal-overlay" id="createRoomModal" onclick="if(event.target === this) this.style.display='none'">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3>Создать сессию</h3>
+                <button type="button" class="modal-close" onclick="document.getElementById('createRoomModal').style.display='none'">&times;</button>
+            </div>
+            <form method="POST" action="{% url 'create_room' %}">
+                {% csrf_token %}
+                <label class="field-label">Название комнаты *</label>
+                <input type="text" name="room_name" class="modal-input" placeholder="НАЗВАНИЕ..." required autocomplete="off">
+
+                <label class="field-label">Описание</label>
+                <textarea name="description" class="modal-input" rows="2" placeholder="ОПИСАНИЕ СЕССИИ..."></textarea>
+
+                <label class="field-label">Ссылка на видео</label>
+                <input type="url" name="video_url" class="modal-input" placeholder="https://..." autocomplete="off">
+
+                <button type="submit" class="btn-submit-modal">Создать и войти</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="joinRoomModal" onclick="if(event.target === this) this.style.display='none'">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3>Подключение по ID</h3>
+                <button type="button" class="modal-close" onclick="document.getElementById('joinRoomModal').style.display='none'">&times;</button>
+            </div>
+            <form method="POST" action="{% url 'join_room' %}">
+                {% csrf_token %}
+                <label class="field-label">Код или название комнаты *</label>
+                <input type="text" name="query" class="modal-input" placeholder="ВВЕДИТЕ ID ИЛИ НАЗВАНИЕ..." required autocomplete="off">
+                <button type="submit" class="btn-submit-modal">Подключиться</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const searchInput = document.getElementById("live-room-search");
+            const cards = document.querySelectorAll(".room-card");
+            const noResults = document.getElementById("no-filter-results");
+
+            if (searchInput && cards.length > 0) {
+                searchInput.addEventListener("input", () => {
+                    const query = searchInput.value.toLowerCase().trim();
+                    let visibleCount = 0;
+
+                    cards.forEach(card => {
+                        const roomName = card.getAttribute("data-room-name") || "";
+                        if (roomName.includes(query)) {
+                            card.style.display = "flex";
+                            visibleCount++;
+                        } else {
+                            card.style.display = "none";
+                        }
+                    });
+
+                    if (noResults) {
+                        noResults.style.display = visibleCount === 0 ? "block" : "none";
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>

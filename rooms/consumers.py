@@ -1,5 +1,7 @@
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
+from channels.db import database_sync_to_async
+from .models import Room, Message
 
 
 class ChatConsumer(AsyncWebsocketConsumer):
@@ -13,18 +15,35 @@ class ChatConsumer(AsyncWebsocketConsumer):
         await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
 
     async def receive(self, text_data):
-        text_data_json = json.loads(text_data)
+        data = json.loads(text_data)
 
-        if text_data_json.get('type') == 'video_sync':
+        if data.get('type') == 'video_sync':
             await self.channel_layer.group_send(
                 self.room_group_name,
-                {'type': 'video_sync_message', 'data': text_data_json}
+                {'type': 'video_sync_message', 'data': data}
             )
-        else:
-            await self.channel_layer.group_send(
-                self.room_group_name,
-                {'type': 'room_message', 'data': text_data_json}
-            )
+        elif data.get('message'):
+            username = data.get('username', 'Гость')
+            message_text = data.get('message', '').strip()
+
+            if message_text:
+                await self.save_message(self.room_uuid, username, message_text)
+                await self.channel_layer.group_send(
+                    self.room_group_name,
+                    {
+                        'type': 'room_message',
+                        'data': {
+                            'message': message_text,
+                            'username': username
+                        }
+                    }
+                )
+
+    @database_sync_to_async
+    def save_message(self, room_uuid, username, text):
+        room = Room.objects.filter(uuid=room_uuid).first()
+        if room:
+            Message.objects.create(room=room, user=username, text=text)
 
     async def room_message(self, event):
         await self.send(text_data=json.dumps(event['data']))

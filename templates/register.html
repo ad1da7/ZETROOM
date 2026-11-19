@@ -1,146 +1,257 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Watch Party | Регистрация</title>
+    <title>ZetRoom | Регистрация</title>
     <link href="https://googleapis.com" rel="stylesheet">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * { margin: 0; padding: 0; box-sizing: border-box; border-radius: 0 !important; }
 
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #0f0f11;
-            color: #ffffff;
             min-height: 100vh;
+            background-color: #f4e6ea;
+            color: #141416;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        .palm-left, .palm-right {
+            position: fixed;
+            bottom: 0;
+            z-index: 0;
+            pointer-events: none;
+            opacity: 0.08;
+        }
+        .palm-left { left: -20px; width: 320px; }
+        .palm-right { right: -20px; width: 340px; transform: scaleX(-1); }
+
+        .navbar {
+            position: relative;
+            z-index: 10;
+            background-color: #141416;
+            border-bottom: 3px solid #d94e78;
+            padding: 0 32px;
+            height: 68px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .brand-logo {
+            font-family: 'Oswald', sans-serif;
+            font-size: 1.8rem;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            text-decoration: none;
+            color: #ffffff;
+        }
+
+        .nav-links { display: flex; gap: 8px; }
+
+        .nav-btn {
+            text-decoration: none;
+            background: transparent;
+            color: #d4d4d8;
+            font-family: 'Oswald', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 600;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            padding: 10px 18px;
+            border: 1px solid #2e2e32;
+            transition: 0.15s;
+        }
+
+        .nav-btn:hover { background: #ffffff; color: #141416; border-color: #ffffff; }
+        .nav-btn-accent { background: #d94e78; color: #ffffff; border-color: #d94e78; }
+        .nav-btn-accent:hover { background: #b83b62; color: #ffffff; border-color: #b83b62; }
+
+        .auth-wrapper {
+            position: relative;
+            z-index: 1;
+            flex: 1;
             display: flex;
             justify-content: center;
             align-items: center;
-            padding: 20px;
+            padding: 40px 20px;
         }
 
-        .container {
-            background-color: #1a1a1e;
-            border: 1px solid #2a2a30;
-            border-radius: 16px;
+        .auth-box {
+            background-color: #ffffff;
+            border: 3px solid #141416;
+            box-shadow: 10px 10px 0px #d94e78;
             padding: 40px;
             width: 100%;
-            max-width: 440px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            max-width: 460px;
         }
 
-        .title {
-            text-align: center;
-            font-size: 1.6rem;
-            font-weight: 700;
-            margin-bottom: 28px;
+        .auth-header {
+            margin-bottom: 24px;
+            padding-bottom: 14px;
+            border-bottom: 2px solid #141416;
+        }
+
+        .auth-header h1 {
+            font-family: 'Oswald', sans-serif;
+            font-size: 1.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #141416;
+        }
+
+        .auth-header p {
+            font-size: 0.85rem;
+            color: #52525b;
+            margin-top: 4px;
         }
 
         .form-group { margin-bottom: 16px; }
 
         label {
             display: block;
-            font-size: 0.9rem;
-            font-weight: 600;
-            color: #a0a0a5;
-            margin-bottom: 8px;
+            font-family: 'Oswald', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-size: 0.85rem;
+            color: #141416;
+            margin-bottom: 6px;
         }
 
-        input {
+        input[type="text"], input[type="password"], input[type="email"] {
             width: 100%;
-            padding: 14px 16px;
-            background-color: #0f0f11;
-            border: 1px solid #2a2a30;
-            border-radius: 8px;
-            color: #ffffff;
+            padding: 12px 14px;
+            background-color: #f4e6ea;
+            border: 2px solid #141416;
+            color: #141416;
             font-family: 'Inter', sans-serif;
-            font-size: 1rem;
+            font-size: 0.95rem;
             outline: none;
-            transition: border-color 0.2s;
         }
 
-        input:focus { border-color: #55555c; }
+        input:focus { border-color: #d94e78; background-color: #ffffff; }
 
         .helptext {
             display: block;
             font-size: 0.78rem;
-            color: #55555c;
-            margin-top: 6px;
-            line-height: 1.4;
-        }
-
-        .helptext ul {
-            padding-left: 16px;
+            color: #71717a;
             margin-top: 4px;
+            line-height: 1.3;
         }
 
         .errorlist {
             list-style: none;
-            color: #ef4444;
+            background: #141416;
+            color: #ff4d79;
+            border-left: 4px solid #dc2626;
+            padding: 10px 12px;
             font-size: 0.85rem;
-            margin-top: 6px;
+            margin-bottom: 16px;
         }
 
         .btn-submit {
             width: 100%;
             padding: 14px;
             border: none;
-            border-radius: 8px;
-            background-color: #10b981;
-            color: white;
-            font-family: 'Inter', sans-serif;
+            background-color: #141416;
+            color: #ffffff;
+            font-family: 'Oswald', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
             font-size: 1rem;
-            font-weight: 600;
             cursor: pointer;
             margin-top: 8px;
-            transition: background-color 0.2s, transform 0.1s;
+            transition: 0.15s;
         }
 
-        .btn-submit:hover { background-color: #059669; }
+        .btn-submit:hover { background-color: #d94e78; }
 
-        .btn-submit:active { transform: scale(0.98); }
-
-        .footer-links {
-            margin-top: 24px;
+        .auth-footer {
+            margin-top: 22px;
+            padding-top: 16px;
+            border-top: 1px solid #e4e4e7;
             text-align: center;
             font-size: 0.9rem;
-            color: #a0a0a5;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
+            color: #52525b;
         }
 
-        .footer-links a {
-            color: #3b82f6;
+        .auth-footer a {
+            color: #d94e78;
+            font-weight: 700;
             text-decoration: none;
-            font-weight: 600;
+            text-transform: uppercase;
         }
 
-        .footer-links a:hover { text-decoration: underline; }
+        .auth-footer a:hover { text-decoration: underline; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="title">Создать аккаунт</div>
+    <svg class="palm-left" viewBox="0 0 200 260" fill="#141416">
+        <path d="M92 260 C95 190 85 130 70 80 L82 78 C98 130 108 190 105 260 Z"/>
+        <path d="M75 82 C45 65 15 75 0 95 C22 86 48 84 72 92 Z"/>
+        <path d="M76 78 C50 45 20 40 2 52 C25 52 50 60 72 84 Z"/>
+        <path d="M80 76 C75 35 55 12 35 5 C52 20 65 45 75 80 Z"/>
+        <path d="M82 78 C110 45 145 45 168 62 C142 56 112 62 84 85 Z"/>
+    </svg>
+    <svg class="palm-right" viewBox="0 0 200 260" fill="#141416">
+        <path d="M92 260 C95 190 85 130 70 80 L82 78 C98 130 108 190 105 260 Z"/>
+        <path d="M75 82 C45 65 15 75 0 95 C22 86 48 84 72 92 Z"/>
+        <path d="M76 78 C50 45 20 40 2 52 C25 52 50 60 72 84 Z"/>
+        <path d="M80 76 C75 35 55 12 35 5 C52 20 65 45 75 80 Z"/>
+        <path d="M82 78 C110 45 145 45 168 62 C142 56 112 62 84 85 Z"/>
+    </svg>
 
-        <form method="post">
-            {% csrf_token %}
-            {% for field in form %}
-                <div class="form-group">
-                    <label>{{ field.label }}</label>
-                    {{ field }}
-                    {% if field.help_text %}
-                        <span class="helptext">{{ field.help_text }}</span>
-                    {% endif %}
-                    {{ field.errors }}
-                </div>
-            {% endfor %}
-            <button type="submit" class="btn-submit">Зарегистрироваться</button>
-        </form>
+    <nav class="navbar">
+        <a href="{% url 'index' %}" class="brand-logo">ZetRoom</a>
+        <div class="nav-links">
+            <a href="{% url 'index' %}" class="nav-btn">Главная</a>
+            <a href="{% url 'login' %}" class="nav-btn">Войти</a>
+        </div>
+    </nav>
 
-        <div class="footer-links">
-            <div>Уже есть аккаунт? <a href="{% url 'login' %}">Войти</a></div>
-            <div><a href="/" style="color: #a0a0a5;">← На главную</a></div>
+    <div class="auth-wrapper">
+        <div class="auth-box">
+            <div class="auth-header">
+                <h1>Регистрация</h1>
+                <p>Создайте профиль зрителя в ZetRoom</p>
+            </div>
+
+            {% if form.non_field_errors %}
+                <ul class="errorlist">
+                    {% for error in form.non_field_errors %}
+                        <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+
+            <form method="post">
+                {% csrf_token %}
+                {% for field in form %}
+                    <div class="form-group">
+                        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                        {{ field }}
+                        {% if field.help_text %}
+                            <span class="helptext">{{ field.help_text|safe }}</span>
+                        {% endif %}
+                        {% if field.errors %}
+                            <div style="color: #dc2626; font-size: 0.8rem; margin-top: 4px; font-weight: 600;">
+                                {{ field.errors|striptags }}
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+                <button type="submit" class="btn-submit">Создать аккаунт</button>
+            </form>
+
+            <div class="auth-footer">
+                Уже есть аккаунт? <a href="{% url 'login' %}">Войти</a>
+            </div>
         </div>
     </div>
 </body>
