@@ -1,7 +1,4 @@
 document.addEventListener("DOMContentLoaded", () => {
-    // =========================================================
-    // 1. ЖИВОЙ ПОИСК КОМНАТ НА СТРАНИЦЕ rooms_list.html
-    // =========================================================
     const liveSearchInput = document.getElementById("live-room-search") || document.querySelector('input[name="q"]');
     const roomCards = document.querySelectorAll(".room-card");
 
@@ -21,10 +18,6 @@ document.addEventListener("DOMContentLoaded", () => {
             });
         });
     }
-
-    // =========================================================
-    // 2. ПРЕДПРОСМОТР АВАТАРКИ В ЛИЧНОМ КАБИНЕТЕ (profile.html)
-    // =========================================================
     const avatarInput = document.querySelector('input[type="file"][name="avatar"]') || document.getElementById("id_avatar");
     const avatarPreviewContainer = document.getElementById("avatar-preview-wrapper");
 
@@ -32,8 +25,6 @@ document.addEventListener("DOMContentLoaded", () => {
         avatarInput.addEventListener("change", (event) => {
             const file = event.target.files[0];
             if (!file) return;
-
-            // Проверяем, что выбран именно файл изображения
             if (!file.type.startsWith("image/")) {
                 alert("Пожалуйста, выберите файл изображения (JPG, PNG, WEBP).");
                 avatarInput.value = "";
@@ -42,7 +33,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
             const reader = new FileReader();
             reader.onload = (e) => {
-                // Если ранее была заглушка-буква (div), заменяем её на тег <img>
                 let imgElement = document.getElementById("avatar-preview-img");
                 if (!imgElement) {
                     avatarPreviewContainer.innerHTML = "";
