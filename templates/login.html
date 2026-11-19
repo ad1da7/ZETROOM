@@ -1,45 +1,247 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Вход в аккаунт</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZetRoom | Вход</title>
+    <link href="https://googleapis.com" rel="stylesheet">
     <style>
-        body { font-family: sans-serif; background: #18181b; color: #fff; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .box { background: #27272a; padding: 30px; border-radius: 12px; width: 360px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
-        h2 { margin-top: 0; text-align: center; }
-        .form-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; color: #a1a1aa; font-size: 14px; }
-        input { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #3f3f46; background: #18181b; color: #fff; box-sizing: border-box; }
-        button { width: 100%; padding: 10px; background: #6366f1; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; margin-top: 10px; }
-        button:hover { background: #4f46e5; }
-        .links { margin-top: 15px; text-align: center; font-size: 14px; color: #a1a1aa; }
-        a { color: #818cf8; text-decoration: none; }
-        .error { color: #f87171; font-size: 13px; margin-bottom: 10px; }
+        * { margin: 0; padding: 0; box-sizing: border-box; border-radius: 0 !important; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            background-color: #f4e6ea;
+            color: #141416;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        .palm-left, .palm-right {
+            position: fixed;
+            bottom: 0;
+            z-index: 0;
+            pointer-events: none;
+            opacity: 0.08;
+        }
+        .palm-left { left: -20px; width: 320px; }
+        .palm-right { right: -20px; width: 340px; transform: scaleX(-1); }
+
+        .navbar {
+            position: relative;
+            z-index: 10;
+            background-color: #141416;
+            border-bottom: 3px solid #d94e78;
+            padding: 0 32px;
+            height: 68px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .brand-logo {
+            font-family: 'Oswald', sans-serif;
+            font-size: 1.8rem;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            text-decoration: none;
+            color: #ffffff;
+        }
+
+        .nav-links { display: flex; gap: 8px; }
+
+        .nav-btn {
+            text-decoration: none;
+            background: transparent;
+            color: #d4d4d8;
+            font-family: 'Oswald', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 600;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            padding: 10px 18px;
+            border: 1px solid #2e2e32;
+            transition: 0.15s;
+        }
+
+        .nav-btn:hover { background: #ffffff; color: #141416; border-color: #ffffff; }
+        .nav-btn-accent { background: #d94e78; color: #ffffff; border-color: #d94e78; }
+        .nav-btn-accent:hover { background: #b83b62; color: #ffffff; border-color: #b83b62; }
+
+        .auth-wrapper {
+            position: relative;
+            z-index: 1;
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 40px 20px;
+        }
+
+        .auth-box {
+            background-color: #ffffff;
+            border: 3px solid #141416;
+            box-shadow: 10px 10px 0px #141416;
+            padding: 40px;
+            width: 100%;
+            max-width: 440px;
+        }
+
+        .auth-header {
+            margin-bottom: 24px;
+            padding-bottom: 14px;
+            border-bottom: 2px solid #141416;
+        }
+
+        .auth-header h1 {
+            font-family: 'Oswald', sans-serif;
+            font-size: 1.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #141416;
+        }
+
+        .auth-header p {
+            font-size: 0.85rem;
+            color: #52525b;
+            margin-top: 4px;
+        }
+
+        .form-group { margin-bottom: 18px; }
+
+        label {
+            display: block;
+            font-family: 'Oswald', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-size: 0.85rem;
+            color: #141416;
+            margin-bottom: 6px;
+        }
+
+        input[type="text"], input[type="password"], input[type="email"] {
+            width: 100%;
+            padding: 12px 14px;
+            background-color: #f4e6ea;
+            border: 2px solid #141416;
+            color: #141416;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.95rem;
+            outline: none;
+        }
+
+        input:focus { border-color: #d94e78; background-color: #ffffff; }
+
+        .errorlist {
+            list-style: none;
+            background: #141416;
+            color: #ff4d79;
+            border-left: 4px solid #dc2626;
+            padding: 10px 12px;
+            font-size: 0.85rem;
+            margin-bottom: 16px;
+        }
+
+        .btn-submit {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            background-color: #141416;
+            color: #ffffff;
+            font-family: 'Oswald', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            font-size: 1rem;
+            cursor: pointer;
+            margin-top: 6px;
+            transition: 0.15s;
+        }
+
+        .btn-submit:hover { background-color: #d94e78; }
+
+        .auth-footer {
+            margin-top: 22px;
+            padding-top: 16px;
+            border-top: 1px solid #e4e4e7;
+            text-align: center;
+            font-size: 0.9rem;
+            color: #52525b;
+        }
+
+        .auth-footer a {
+            color: #d94e78;
+            font-weight: 700;
+            text-decoration: none;
+            text-transform: uppercase;
+        }
+
+        .auth-footer a:hover { text-decoration: underline; }
     </style>
 </head>
 <body>
-<div class="box">
-    <h2>Вход</h2>
-    <form method="post">
-        {% csrf_token %}
-        {% if form.non_field_errors %}
-            <div class="error">{{ form.non_field_errors }}</div>
-        {% endif %}
-        {% for field in form %}
-            <div class="form-group">
-                <label>{{ field.label }}</label>
-                {{ field }}
-                {% if field.errors %}
-                    <div class="error">{{ field.errors }}</div>
-                {% endif %}
+    <svg class="palm-left" viewBox="0 0 200 260" fill="#141416">
+        <path d="M92 260 C95 190 85 130 70 80 L82 78 C98 130 108 190 105 260 Z"/>
+        <path d="M75 82 C45 65 15 75 0 95 C22 86 48 84 72 92 Z"/>
+        <path d="M76 78 C50 45 20 40 2 52 C25 52 50 60 72 84 Z"/>
+        <path d="M80 76 C75 35 55 12 35 5 C52 20 65 45 75 80 Z"/>
+        <path d="M82 78 C110 45 145 45 168 62 C142 56 112 62 84 85 Z"/>
+    </svg>
+    <svg class="palm-right" viewBox="0 0 200 260" fill="#141416">
+        <path d="M92 260 C95 190 85 130 70 80 L82 78 C98 130 108 190 105 260 Z"/>
+        <path d="M75 82 C45 65 15 75 0 95 C22 86 48 84 72 92 Z"/>
+        <path d="M76 78 C50 45 20 40 2 52 C25 52 50 60 72 84 Z"/>
+        <path d="M80 76 C75 35 55 12 35 5 C52 20 65 45 75 80 Z"/>
+        <path d="M82 78 C110 45 145 45 168 62 C142 56 112 62 84 85 Z"/>
+    </svg>
+
+    <nav class="navbar">
+        <a href="{% url 'index' %}" class="brand-logo">ZetRoom</a>
+        <div class="nav-links">
+            <a href="{% url 'index' %}" class="nav-btn">Главная</a>
+            <a href="{% url 'register' %}" class="nav-btn nav-btn-accent">Регистрация</a>
+        </div>
+    </nav>
+
+    <div class="auth-wrapper">
+        <div class="auth-box">
+            <div class="auth-header">
+                <h1>Авторизация</h1>
+                <p>Войдите в аккаунт, чтобы создавать и смотреть комнаты</p>
             </div>
-        {% endfor %}
-        <button type="submit">Войти</button>
-    </form>
-    <div class="links">
-        Нет аккаунта? <a href="{% url 'register' %}">Зарегистрироваться</a><br><br>
-        <a href="/">← На главную</a>
+
+            {% if form.non_field_errors %}
+                <ul class="errorlist">
+                    {% for error in form.non_field_errors %}
+                        <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+
+            <form method="post">
+                {% csrf_token %}
+                {% for field in form %}
+                    <div class="form-group">
+                        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                        {{ field }}
+                        {% if field.errors %}
+                            <div style="color: #dc2626; font-size: 0.8rem; margin-top: 4px; font-weight: 600;">
+                                {{ field.errors|striptags }}
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+                <button type="submit" class="btn-submit">Войти в ZetRoom</button>
+            </form>
+
+            <div class="auth-footer">
+                Нет аккаунта? <a href="{% url 'register' %}">Зарегистрироваться</a>
+            </div>
+        </div>
     </div>
-</div>
 </body>
 </html>
