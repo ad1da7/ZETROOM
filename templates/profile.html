@@ -1,17 +1,18 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Watch Party | Личный кабинет</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <title>ZetRoom | Личный кабинет</title>
+    <link href="https://googleapis.com" rel="stylesheet">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * { margin: 0; padding: 0; box-sizing: border-box; border-radius: 0 !important; }
 
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #0f0f11;
-            color: #ffffff;
+            background-color: #f4e6ea;
+            color: #141416;
             min-height: 100vh;
             display: flex;
             justify-content: center;
@@ -20,13 +21,12 @@
         }
 
         .container {
-            background-color: #1a1a1e;
-            border: 1px solid #2a2a30;
-            border-radius: 16px;
+            background-color: #ffffff;
+            border: 3px solid #141416;
+            box-shadow: 10px 10px 0px #141416;
             padding: 40px;
             width: 100%;
             max-width: 520px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
         }
 
         .top-nav {
@@ -34,174 +34,124 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 2px solid #141416;
         }
 
         .back-link {
-            color: #a0a0a5;
+            color: #141416;
             text-decoration: none;
-            font-size: 0.9rem;
-            font-weight: 600;
-            transition: color 0.2s;
+            font-family: 'Oswald', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 0.95rem;
         }
 
-        .back-link:hover {
-            color: #ffffff;
-        }
+        .back-link:hover { color: #d94e78; }
 
         .btn-logout {
-            background: transparent;
-            border: 1px solid #2a2a30;
-            color: #ef4444;
-            padding: 6px 14px;
-            border-radius: 8px;
-            font-family: 'Inter', sans-serif;
+            background: #141416;
+            border: none;
+            color: #ffffff;
+            padding: 8px 16px;
+            font-family: 'Oswald', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 1px;
             font-size: 0.85rem;
-            font-weight: 600;
             cursor: pointer;
-            transition: background-color 0.2s, border-color 0.2s;
         }
 
-        .btn-logout:hover {
-            background-color: rgba(239, 68, 68, 0.1);
-            border-color: #ef4444;
-        }
+        .btn-logout:hover { background-color: #dc2626; }
 
         .profile-header {
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 28px;
         }
 
         #avatar-preview-wrapper {
-            width: 104px;
-            height: 104px;
+            width: 110px;
+            height: 110px;
             margin: 0 auto 14px;
+            border: 3px solid #141416;
+            box-shadow: 4px 4px 0px #d94e78;
         }
 
         .avatar-large {
-            width: 104px;
-            height: 104px;
-            border-radius: 50%;
+            width: 100%;
+            height: 100%;
             object-fit: cover;
-            border: 2px solid #3b82f6;
             display: flex;
             align-items: center;
             justify-content: center;
-            background-color: #0f0f11;
-            font-size: 2.2rem;
-            font-weight: 700;
-            color: #3b82f6;
-        }
-
-        .preview-hint {
-            font-size: 0.8rem;
-            color: #71717a;
-            margin-bottom: 10px;
+            background-color: #141416;
+            font-family: 'Oswald', sans-serif;
+            font-size: 2.5rem;
+            color: #d94e78;
         }
 
         .username {
-            font-size: 1.4rem;
-            font-weight: 700;
+            font-family: 'Oswald', sans-serif;
+            font-size: 1.6rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
             margin-bottom: 4px;
         }
 
         .user-tag {
-            color: #3b82f6;
+            color: #d94e78;
             font-size: 0.95rem;
-            font-weight: 600;
+            font-weight: 700;
         }
 
-        .form-group {
-            margin-bottom: 18px;
-        }
+        .form-group { margin-bottom: 18px; }
 
         label {
             display: block;
-            font-size: 0.9rem;
-            font-weight: 600;
-            color: #a0a0a5;
-            margin-bottom: 8px;
+            font-family: 'Oswald', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-size: 0.85rem;
+            color: #141416;
+            margin-bottom: 6px;
         }
 
-        input[type="text"],
-        input[type="number"],
-        textarea {
+        input[type="text"], input[type="number"], textarea, input[type="file"] {
             width: 100%;
             padding: 12px 14px;
-            background-color: #0f0f11;
-            border: 1px solid #2a2a30;
-            border-radius: 8px;
-            color: #ffffff;
+            background-color: #f4e6ea;
+            border: 2px solid #141416;
+            color: #141416;
             font-family: 'Inter', sans-serif;
             font-size: 0.95rem;
             outline: none;
-            transition: border-color 0.2s;
         }
 
-        input:focus, textarea:focus {
-            border-color: #3b82f6;
-        }
-
-        input[type="file"] {
-            width: 100%;
-            padding: 10px;
-            background-color: #0f0f11;
-            border: 1px dashed #2a2a30;
-            border-radius: 8px;
-            color: #a0a0a5;
-            font-size: 0.9rem;
-            cursor: pointer;
-        }
-
-        input[type="checkbox"] {
-            width: auto;
-            margin-right: 6px;
-            accent-color: #3b82f6;
-        }
-
-        .form-group a {
-            color: #3b82f6;
-            text-decoration: none;
-            font-size: 0.85rem;
-        }
+        input:focus, textarea:focus { border-color: #d94e78; background-color: #ffffff; }
 
         .btn-save {
             width: 100%;
             padding: 14px;
             border: none;
-            border-radius: 8px;
-            background-color: #3b82f6;
-            color: white;
-            font-family: 'Inter', sans-serif;
+            background-color: #141416;
+            color: #ffffff;
+            font-family: 'Oswald', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
             font-size: 1rem;
-            font-weight: 600;
             cursor: pointer;
             margin-top: 8px;
-            transition: background-color 0.2s, transform 0.1s;
         }
 
-        .btn-save:hover {
-            background-color: #2563eb;
-        }
-
-        .btn-save:active {
-            transform: scale(0.98);
-        }
-
-        .errorlist {
-            list-style: none;
-            color: #ef4444;
-            font-size: 0.85rem;
-            margin-top: 6px;
-        }
+        .btn-save:hover { background-color: #d94e78; }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="top-nav">
-            <a href="/" class="back-link">← На главную</a>
+            <a href="{% url 'index' %}" class="back-link">← На главную</a>
             <form action="{% url 'logout' %}" method="post">
                 {% csrf_token %}
-                <button type="submit" class="btn-logout">Выйти</button>
+                <button type="submit" class="btn-logout">Выйти из аккаунта</button>
             </form>
         </div>
 
@@ -213,9 +163,8 @@
                     <div class="avatar-large">{{ user.username|first|upper }}</div>
                 {% endif %}
             </div>
-            <div class="preview-hint">Выберите новое фото ниже для мгновенного предпросмотра</div>
             <div class="username">{{ user.username }}</div>
-            <div class="user-tag">{{ profile.tag|default:"Никнейм / тег не задан" }}</div>
+            <div class="user-tag">{{ profile.tag|default:"ЗРИТЕЛЬ ZETROOM" }}</div>
         </div>
 
         <form method="post" enctype="multipart/form-data">
@@ -227,11 +176,10 @@
                     {{ field.errors }}
                 </div>
             {% endfor %}
-            <button type="submit" class="btn-save">Сохранить изменения</button>
+            <button type="submit" class="btn-save">Сохранить профиль</button>
         </form>
     </div>
 
-    <!-- Подключение JS для предпросмотра аватарки -->
     <script src="{% static 'js/main.js' %}"></script>
 </body>
 </html>
