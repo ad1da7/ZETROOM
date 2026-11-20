@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ZetRoom | Вход</title>
+    <title>Zetroom | Вход</title>
     <link href="https://googleapis.com" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; border-radius: 0 !important; }
@@ -12,30 +12,20 @@
         body {
             font-family: 'Inter', sans-serif;
             min-height: 100vh;
-            background-color: #f4e6ea;
-            color: #141416;
+            background:
+                linear-gradient(rgba(248, 200, 212, 0.55), rgba(248, 200, 212, 0.65)),
+                url("{% static 'images/vice_city.png' %}") no-repeat center center fixed;
+            background-size: cover;
+            background-color: #f8c8d4;
+            color: #1e161a;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            position: relative;
-            overflow-x: hidden;
         }
-
-        .palm-left, .palm-right {
-            position: fixed;
-            bottom: 0;
-            z-index: 0;
-            pointer-events: none;
-            opacity: 0.08;
-        }
-        .palm-left { left: -20px; width: 320px; }
-        .palm-right { right: -20px; width: 340px; transform: scaleX(-1); }
 
         .navbar {
-            position: relative;
-            z-index: 10;
-            background-color: #141416;
-            border-bottom: 3px solid #d94e78;
+            background-color: #1e161a;
+            border-bottom: 3px solid #d65a7b;
             padding: 0 32px;
             height: 68px;
             display: flex;
@@ -43,39 +33,30 @@
             align-items: center;
         }
 
-        .brand-logo {
-            font-family: 'Oswald', sans-serif;
-            font-size: 1.8rem;
-            font-weight: 700;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            text-decoration: none;
-            color: #ffffff;
-        }
+        .brand-logo { display: flex; align-items: center; text-decoration: none; height: 100%; }
+        .brand-logo img { height: 44px; width: auto; object-fit: contain; display: block; }
 
         .nav-links { display: flex; gap: 8px; }
 
         .nav-btn {
             text-decoration: none;
             background: transparent;
-            color: #d4d4d8;
+            color: #f8c8d4;
             font-family: 'Oswald', sans-serif;
             font-size: 0.95rem;
             font-weight: 600;
             letter-spacing: 1px;
             text-transform: uppercase;
             padding: 10px 18px;
-            border: 1px solid #2e2e32;
+            border: 1px solid #3d2c34;
             transition: 0.15s;
         }
 
-        .nav-btn:hover { background: #ffffff; color: #141416; border-color: #ffffff; }
-        .nav-btn-accent { background: #d94e78; color: #ffffff; border-color: #d94e78; }
-        .nav-btn-accent:hover { background: #b83b62; color: #ffffff; border-color: #b83b62; }
+        .nav-btn:hover { background: #f8c8d4; color: #1e161a; border-color: #f8c8d4; }
+        .nav-btn-accent { background: #d65a7b; color: #ffffff; border-color: #d65a7b; }
+        .nav-btn-accent:hover { background: #b84463; color: #ffffff; border-color: #b84463; }
 
         .auth-wrapper {
-            position: relative;
-            z-index: 1;
             flex: 1;
             display: flex;
             justify-content: center;
@@ -85,8 +66,8 @@
 
         .auth-box {
             background-color: #ffffff;
-            border: 3px solid #141416;
-            box-shadow: 10px 10px 0px #141416;
+            border: 3px solid #1e161a;
+            box-shadow: 10px 10px 0px #1e161a;
             padding: 40px;
             width: 100%;
             max-width: 440px;
@@ -95,7 +76,7 @@
         .auth-header {
             margin-bottom: 24px;
             padding-bottom: 14px;
-            border-bottom: 2px solid #141416;
+            border-bottom: 2px solid #1e161a;
         }
 
         .auth-header h1 {
@@ -103,15 +84,10 @@
             font-size: 1.8rem;
             text-transform: uppercase;
             letter-spacing: 1px;
-            color: #141416;
+            color: #1e161a;
         }
 
-        .auth-header p {
-            font-size: 0.85rem;
-            color: #52525b;
-            margin-top: 4px;
-        }
-
+        .auth-header p { font-size: 0.85rem; color: #6b4c57; margin-top: 4px; }
         .form-group { margin-bottom: 18px; }
 
         label {
@@ -120,28 +96,28 @@
             text-transform: uppercase;
             letter-spacing: 0.5px;
             font-size: 0.85rem;
-            color: #141416;
+            color: #1e161a;
             margin-bottom: 6px;
         }
 
         input[type="text"], input[type="password"], input[type="email"] {
             width: 100%;
             padding: 12px 14px;
-            background-color: #f4e6ea;
-            border: 2px solid #141416;
-            color: #141416;
+            background-color: #fce8ed;
+            border: 2px solid #1e161a;
+            color: #1e161a;
             font-family: 'Inter', sans-serif;
             font-size: 0.95rem;
             outline: none;
         }
 
-        input:focus { border-color: #d94e78; background-color: #ffffff; }
+        input:focus { border-color: #d65a7b; background-color: #ffffff; }
 
         .errorlist {
             list-style: none;
-            background: #141416;
-            color: #ff4d79;
-            border-left: 4px solid #dc2626;
+            background: #1e161a;
+            color: #f8c8d4;
+            border-left: 4px solid #c93b5b;
             padding: 10px 12px;
             font-size: 0.85rem;
             margin-bottom: 16px;
@@ -151,8 +127,8 @@
             width: 100%;
             padding: 14px;
             border: none;
-            background-color: #141416;
-            color: #ffffff;
+            background-color: #1e161a;
+            color: #f8c8d4;
             font-family: 'Oswald', sans-serif;
             text-transform: uppercase;
             letter-spacing: 1.5px;
@@ -162,45 +138,26 @@
             transition: 0.15s;
         }
 
-        .btn-submit:hover { background-color: #d94e78; }
+        .btn-submit:hover { background-color: #d65a7b; color: #ffffff; }
 
         .auth-footer {
             margin-top: 22px;
             padding-top: 16px;
-            border-top: 1px solid #e4e4e7;
+            border-top: 1px solid #f2d5dc;
             text-align: center;
             font-size: 0.9rem;
-            color: #52525b;
+            color: #6b4c57;
         }
 
-        .auth-footer a {
-            color: #d94e78;
-            font-weight: 700;
-            text-decoration: none;
-            text-transform: uppercase;
-        }
-
+        .auth-footer a { color: #d65a7b; font-weight: 700; text-decoration: none; text-transform: uppercase; }
         .auth-footer a:hover { text-decoration: underline; }
     </style>
 </head>
 <body>
-    <svg class="palm-left" viewBox="0 0 200 260" fill="#141416">
-        <path d="M92 260 C95 190 85 130 70 80 L82 78 C98 130 108 190 105 260 Z"/>
-        <path d="M75 82 C45 65 15 75 0 95 C22 86 48 84 72 92 Z"/>
-        <path d="M76 78 C50 45 20 40 2 52 C25 52 50 60 72 84 Z"/>
-        <path d="M80 76 C75 35 55 12 35 5 C52 20 65 45 75 80 Z"/>
-        <path d="M82 78 C110 45 145 45 168 62 C142 56 112 62 84 85 Z"/>
-    </svg>
-    <svg class="palm-right" viewBox="0 0 200 260" fill="#141416">
-        <path d="M92 260 C95 190 85 130 70 80 L82 78 C98 130 108 190 105 260 Z"/>
-        <path d="M75 82 C45 65 15 75 0 95 C22 86 48 84 72 92 Z"/>
-        <path d="M76 78 C50 45 20 40 2 52 C25 52 50 60 72 84 Z"/>
-        <path d="M80 76 C75 35 55 12 35 5 C52 20 65 45 75 80 Z"/>
-        <path d="M82 78 C110 45 145 45 168 62 C142 56 112 62 84 85 Z"/>
-    </svg>
-
     <nav class="navbar">
-        <a href="{% url 'index' %}" class="brand-logo">ZetRoom</a>
+        <a href="{% url 'index' %}" class="brand-logo">
+            <img src="{% static 'images/logo.png' %}" alt="Zetroom">
+        </a>
         <div class="nav-links">
             <a href="{% url 'index' %}" class="nav-btn">Главная</a>
             <a href="{% url 'register' %}" class="nav-btn nav-btn-accent">Регистрация</a>
@@ -229,13 +186,13 @@
                         <label for="{{ field.id_for_label }}">{{ field.label }}</label>
                         {{ field }}
                         {% if field.errors %}
-                            <div style="color: #dc2626; font-size: 0.8rem; margin-top: 4px; font-weight: 600;">
+                            <div style="color: #c93b5b; font-size: 0.8rem; margin-top: 4px; font-weight: 600;">
                                 {{ field.errors|striptags }}
                             </div>
                         {% endif %}
                     </div>
                 {% endfor %}
-                <button type="submit" class="btn-submit">Войти в ZetRoom</button>
+                <button type="submit" class="btn-submit">Войти в Zetroom</button>
             </form>
 
             <div class="auth-footer">

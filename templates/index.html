@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ZetRoom | Кинозалы</title>
+    <title>Zetroom | Кинозалы</title>
     <link href="https://googleapis.com" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; border-radius: 0 !important; }
@@ -12,28 +12,22 @@
         body {
             font-family: 'Inter', sans-serif;
             min-height: 100vh;
-            background-color: #f4e6ea;
-            color: #161618;
+            background:
+                linear-gradient(rgba(248, 200, 212, 0.55), rgba(248, 200, 212, 0.65)),
+                url("{% static 'images/vice_city.png' %}") no-repeat center center fixed;
+            background-size: cover;
+            background-color: #f8c8d4;
+            color: #1e161a;
             position: relative;
             overflow-x: hidden;
         }
-
-        .palm-left, .palm-right {
-            position: fixed;
-            bottom: 0;
-            z-index: 0;
-            pointer-events: none;
-            opacity: 0.08;
-        }
-        .palm-left { left: -20px; width: 320px; }
-        .palm-right { right: -20px; width: 340px; transform: scaleX(-1); }
 
         .navbar {
             position: sticky;
             top: 0;
             z-index: 100;
-            background-color: #141416;
-            border-bottom: 3px solid #d94e78;
+            background-color: #1e161a;
+            border-bottom: 3px solid #d65a7b;
             padding: 0 32px;
             height: 68px;
             display: flex;
@@ -42,16 +36,21 @@
         }
 
         .brand-logo {
-            font-family: 'Oswald', sans-serif;
-            font-size: 1.8rem;
-            font-weight: 700;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            text-decoration: none;
-            color: #ffffff;
             display: flex;
             align-items: center;
+            text-decoration: none;
+            height: 100%;
         }
+
+        .brand-logo img {
+            height: 44px;
+            width: auto;
+            object-fit: contain;
+            display: block;
+            transition: transform 0.15s ease;
+        }
+
+        .brand-logo:hover img { transform: scale(1.03); }
 
         .nav-links {
             display: flex;
@@ -62,7 +61,7 @@
         .nav-btn {
             text-decoration: none;
             background: transparent;
-            color: #d4d4d8;
+            color: #f8c8d4;
             font-family: 'Oswald', sans-serif;
             font-size: 0.95rem;
             font-weight: 600;
@@ -70,61 +69,61 @@
             text-transform: uppercase;
             padding: 10px 18px;
             cursor: pointer;
-            border: 1px solid #2e2e32;
+            border: 1px solid #3d2c34;
             transition: all 0.15s ease;
         }
 
         .nav-btn:hover, .nav-btn.active {
-            background-color: #ffffff;
-            color: #141416;
-            border-color: #ffffff;
+            background-color: #f8c8d4;
+            color: #1e161a;
+            border-color: #f8c8d4;
         }
 
         .nav-btn-accent {
-            background-color: #d94e78;
+            background-color: #d65a7b;
             color: #ffffff;
-            border-color: #d94e78;
+            border-color: #d65a7b;
         }
 
         .nav-btn-accent:hover {
-            background-color: #b83b62;
+            background-color: #b84463;
             color: #ffffff;
-            border-color: #b83b62;
+            border-color: #b84463;
         }
 
         .nav-btn-admin {
-            background-color: #27272a;
-            color: #fbbf24;
-            border-color: #fbbf24;
+            background-color: #2d2026;
+            color: #f8c8d4;
+            border-color: #f8c8d4;
         }
 
         .nav-btn-admin:hover {
-            background-color: #fbbf24;
-            color: #141416;
+            background-color: #f8c8d4;
+            color: #1e161a;
         }
 
         .profile-chip {
             display: inline-flex;
             align-items: center;
             gap: 10px;
-            background: #222225;
+            background: #2d2026;
             padding: 6px 14px 6px 6px;
             text-decoration: none;
             color: #ffffff;
             font-family: 'Oswald', sans-serif;
             letter-spacing: 1px;
             font-size: 0.9rem;
-            border: 1px solid #3f3f46;
+            border: 1px solid #543b47;
             cursor: pointer;
         }
 
-        .profile-chip:hover { border-color: #d94e78; }
+        .profile-chip:hover { border-color: #f8c8d4; }
 
         .chip-avatar {
             width: 28px;
             height: 28px;
             object-fit: cover;
-            background: #d94e78;
+            background: #d65a7b;
             color: #fff;
             display: flex;
             align-items: center;
@@ -144,8 +143,10 @@
             justify-content: space-between;
             align-items: flex-end;
             margin-bottom: 32px;
-            padding-bottom: 16px;
-            border-bottom: 2px solid #141416;
+            padding: 20px 24px;
+            background: rgba(255, 255, 255, 0.92);
+            border: 2px solid #1e161a;
+            box-shadow: 6px 6px 0px #1e161a;
             gap: 20px;
             flex-wrap: wrap;
         }
@@ -156,15 +157,16 @@
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 1.5px;
-            color: #141416;
+            color: #1e161a;
         }
 
         .hero-subtitle {
-            color: #52525b;
+            color: #6b4c57;
             font-size: 0.9rem;
             margin-top: 4px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
+            font-weight: 600;
         }
 
         .filter-form {
@@ -177,20 +179,20 @@
         .search-bar {
             flex: 1;
             padding: 12px 16px;
-            border: 2px solid #141416;
-            background: #ffffff;
-            color: #141416;
+            border: 2px solid #1e161a;
+            background: #fce8ed;
+            color: #1e161a;
             font-family: 'Inter', sans-serif;
             font-size: 0.95rem;
             outline: none;
         }
 
-        .search-bar:focus { border-color: #d94e78; }
+        .search-bar:focus { border-color: #d65a7b; background: #ffffff; }
 
         .btn-filter {
-            background: #141416;
-            color: #ffffff;
-            border: 2px solid #141416;
+            background: #1e161a;
+            color: #f8c8d4;
+            border: 2px solid #1e161a;
             padding: 0 18px;
             font-family: 'Oswald', sans-serif;
             letter-spacing: 1px;
@@ -198,12 +200,12 @@
             cursor: pointer;
         }
 
-        .btn-filter:hover { background: #d94e78; border-color: #d94e78; }
+        .btn-filter:hover { background: #d65a7b; border-color: #d65a7b; color: #ffffff; }
 
         .alert-banner {
-            background: #141416;
-            color: #ff4d79;
-            border-left: 4px solid #d94e78;
+            background: #1e161a;
+            color: #f8c8d4;
+            border-left: 4px solid #d65a7b;
             padding: 14px 20px;
             margin-bottom: 24px;
             font-family: 'Oswald', sans-serif;
@@ -218,8 +220,8 @@
 
         .room-card {
             background: #ffffff;
-            border: 2px solid #141416;
-            box-shadow: 6px 6px 0px #141416;
+            border: 2px solid #1e161a;
+            box-shadow: 6px 6px 0px #1e161a;
             display: flex;
             flex-direction: column;
             transition: transform 0.15s ease, box-shadow 0.15s ease;
@@ -227,30 +229,40 @@
 
         .room-card:hover {
             transform: translate(-2px, -2px);
-            box-shadow: 8px 8px 0px #d94e78;
+            box-shadow: 8px 8px 0px #d65a7b;
         }
 
         .room-preview {
             height: 145px;
-            background: linear-gradient(135deg, #272226 0%, #4a2c38 60%, #d94e78 100%);
+            background: linear-gradient(135deg, #f8c8d4 0%, #e692a8 50%, #d65a7b 100%);
             position: relative;
             display: flex;
             justify-content: center;
             align-items: center;
-            border-bottom: 2px solid #141416;
+            border-bottom: 2px solid #1e161a;
+        }
+
+        .room-preview-empty {
+            height: 145px;
+            background: repeating-linear-gradient(-45deg, #fce8ed, #fce8ed 12px, #f8c8d4 12px, #f8c8d4 24px);
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-bottom: 2px solid #1e161a;
         }
 
         .live-pill {
             position: absolute;
             top: 12px;
             left: 12px;
-            background: #141416;
-            color: #ffffff;
+            background: #1e161a;
+            color: #f8c8d4;
             font-family: 'Oswald', sans-serif;
             font-size: 0.75rem;
             letter-spacing: 1px;
             padding: 4px 10px;
-            border: 1px solid #d94e78;
+            border: 1px solid #d65a7b;
         }
 
         .users-pill {
@@ -258,7 +270,8 @@
             top: 12px;
             right: 12px;
             background: #ffffff;
-            color: #141416;
+            color: #1e161a;
+            border: 1px solid #1e161a;
             font-family: 'Oswald', sans-serif;
             font-size: 0.8rem;
             font-weight: 700;
@@ -268,13 +281,24 @@
         .play-box {
             width: 48px;
             height: 48px;
-            background: #d94e78;
-            color: #ffffff;
+            background: #1e161a;
+            color: #f8c8d4;
             display: flex;
             justify-content: center;
             align-items: center;
             font-size: 1.2rem;
             border: 2px solid #ffffff;
+        }
+
+        .no-video-badge {
+            background: #ffffff;
+            color: #1e161a;
+            border: 2px solid #1e161a;
+            padding: 6px 14px;
+            font-family: 'Oswald', sans-serif;
+            font-size: 0.85rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
         }
 
         .room-body {
@@ -290,13 +314,13 @@
             font-size: 1.3rem;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            color: #141416;
+            color: #1e161a;
             margin-bottom: 6px;
         }
 
         .room-desc {
             font-size: 0.88rem;
-            color: #52525b;
+            color: #6b4c57;
             margin-bottom: 16px;
             line-height: 1.4;
         }
@@ -306,7 +330,7 @@
             justify-content: space-between;
             align-items: center;
             padding-top: 14px;
-            border-top: 1px solid #e4e4e7;
+            border-top: 1px solid #f2d5dc;
             gap: 8px;
         }
 
@@ -314,15 +338,15 @@
             font-size: 0.8rem;
             font-weight: 700;
             text-transform: uppercase;
-            color: #71717a;
+            color: #8c6674;
         }
 
         .card-actions { display: flex; gap: 6px; }
 
         .btn-card-enter {
             text-decoration: none;
-            background: #141416;
-            color: #ffffff;
+            background: #1e161a;
+            color: #f8c8d4;
             font-family: 'Oswald', sans-serif;
             letter-spacing: 1px;
             text-transform: uppercase;
@@ -330,11 +354,11 @@
             padding: 8px 16px;
         }
 
-        .btn-card-enter:hover { background: #d94e78; }
+        .btn-card-enter:hover { background: #d65a7b; color: #ffffff; }
 
         .btn-card-delete {
             text-decoration: none;
-            background: #dc2626;
+            background: #c93b5b;
             color: #ffffff;
             font-family: 'Oswald', sans-serif;
             letter-spacing: 1px;
@@ -343,12 +367,12 @@
             padding: 8px 12px;
         }
 
-        .btn-card-delete:hover { background: #991b1b; }
+        .btn-card-delete:hover { background: #9e2a45; }
 
         .empty-lobby {
-            background: #ffffff;
-            border: 2px solid #141416;
-            box-shadow: 6px 6px 0px #141416;
+            background: rgba(255, 255, 255, 0.94);
+            border: 2px solid #1e161a;
+            box-shadow: 6px 6px 0px #1e161a;
             padding: 60px 24px;
             text-align: center;
         }
@@ -357,17 +381,17 @@
             font-family: 'Oswald', sans-serif;
             font-size: 1.6rem;
             text-transform: uppercase;
-            color: #141416;
+            color: #1e161a;
             margin-bottom: 10px;
         }
 
-        .empty-lobby p { color: #52525b; margin-bottom: 24px; }
+        .empty-lobby p { color: #6b4c57; margin-bottom: 24px; }
 
         .modal-overlay {
             display: none;
             position: fixed;
             inset: 0;
-            background: rgba(20, 20, 22, 0.75);
+            background: rgba(30, 22, 26, 0.75);
             justify-content: center;
             align-items: center;
             padding: 20px;
@@ -376,8 +400,8 @@
 
         .modal-box {
             background: #ffffff;
-            border: 3px solid #141416;
-            box-shadow: 10px 10px 0px #d94e78;
+            border: 3px solid #1e161a;
+            box-shadow: 10px 10px 0px #d65a7b;
             padding: 32px;
             width: 100%;
             max-width: 440px;
@@ -389,7 +413,7 @@
             align-items: center;
             margin-bottom: 20px;
             padding-bottom: 12px;
-            border-bottom: 2px solid #141416;
+            border-bottom: 2px solid #1e161a;
         }
 
         .modal-header h3 {
@@ -397,14 +421,14 @@
             font-size: 1.4rem;
             text-transform: uppercase;
             letter-spacing: 1px;
-            color: #141416;
+            color: #1e161a;
         }
 
         .modal-close {
             background: none;
             border: none;
             font-size: 1.6rem;
-            color: #141416;
+            color: #1e161a;
             cursor: pointer;
         }
 
@@ -414,7 +438,7 @@
             font-size: 0.85rem;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            color: #141416;
+            color: #1e161a;
             margin-bottom: 6px;
         }
 
@@ -422,22 +446,22 @@
             width: 100%;
             padding: 12px 14px;
             margin-bottom: 16px;
-            border: 2px solid #141416;
-            background: #f4e6ea;
-            color: #141416;
+            border: 2px solid #1e161a;
+            background: #fce8ed;
+            color: #1e161a;
             font-family: 'Inter', sans-serif;
             font-size: 0.95rem;
             outline: none;
         }
 
-        .modal-input:focus { border-color: #d94e78; background: #ffffff; }
+        .modal-input:focus { border-color: #d65a7b; background: #ffffff; }
 
         .btn-submit-modal {
             width: 100%;
             padding: 14px;
             border: none;
-            background: #141416;
-            color: #ffffff;
+            background: #1e161a;
+            color: #f8c8d4;
             font-family: 'Oswald', sans-serif;
             font-size: 1rem;
             letter-spacing: 1.5px;
@@ -445,27 +469,14 @@
             cursor: pointer;
         }
 
-        .btn-submit-modal:hover { background: #d94e78; }
+        .btn-submit-modal:hover { background: #d65a7b; color: #ffffff; }
     </style>
 </head>
 <body>
-    <svg class="palm-left" viewBox="0 0 200 260" fill="#141416">
-        <path d="M92 260 C95 190 85 130 70 80 L82 78 C98 130 108 190 105 260 Z"/>
-        <path d="M75 82 C45 65 15 75 0 95 C22 86 48 84 72 92 Z"/>
-        <path d="M76 78 C50 45 20 40 2 52 C25 52 50 60 72 84 Z"/>
-        <path d="M80 76 C75 35 55 12 35 5 C52 20 65 45 75 80 Z"/>
-        <path d="M82 78 C110 45 145 45 168 62 C142 56 112 62 84 85 Z"/>
-    </svg>
-    <svg class="palm-right" viewBox="0 0 200 260" fill="#141416">
-        <path d="M92 260 C95 190 85 130 70 80 L82 78 C98 130 108 190 105 260 Z"/>
-        <path d="M75 82 C45 65 15 75 0 95 C22 86 48 84 72 92 Z"/>
-        <path d="M76 78 C50 45 20 40 2 52 C25 52 50 60 72 84 Z"/>
-        <path d="M80 76 C75 35 55 12 35 5 C52 20 65 45 75 80 Z"/>
-        <path d="M82 78 C110 45 145 45 168 62 C142 56 112 62 84 85 Z"/>
-    </svg>
-
     <nav class="navbar">
-        <a href="{% url 'index' %}" class="brand-logo">ZetRoom</a>
+        <a href="{% url 'index' %}" class="brand-logo">
+            <img src="{% static 'images/logo.png' %}" alt="Zetroom">
+        </a>
 
         <div class="nav-links">
             <a href="{% url 'index' %}" class="nav-btn active">Главная</a>
@@ -499,7 +510,7 @@
         <div class="hero-header">
             <div>
                 <h1 class="hero-title">Активные сессии</h1>
-                <p class="hero-subtitle">Прямые трансляции и совместные кинозалы ZetRoom</p>
+                <p class="hero-subtitle">Прямые трансляции и совместные кинозалы Zetroom</p>
             </div>
 
             <form method="GET" action="{% url 'index' %}" class="filter-form">
@@ -516,15 +527,24 @@
             <div class="rooms-grid" id="rooms-grid">
                 {% for room in rooms %}
                     <div class="room-card" data-room-name="{{ room.name|lower }}">
-                        <div class="room-preview">
-                            <span class="live-pill">● В ЭФИРЕ</span>
-                            <span class="users-pill">ЗРИТЕЛЕЙ: {{ room.participants.count }}</span>
-                            <div class="play-box">▶</div>
-                        </div>
+                        {% if room.video_url %}
+                            <div class="room-preview">
+                                <span class="live-pill">● В ЭФИРЕ</span>
+                                <span class="users-pill">ЗРИТЕЛЕЙ: {{ room.participants.count }}</span>
+                                <div class="play-box">▶</div>
+                            </div>
+                        {% else %}
+                            <div class="room-preview-empty">
+                                <span class="live-pill">● ОЖИДАНИЕ</span>
+                                <span class="users-pill">ЗРИТЕЛЕЙ: {{ room.participants.count }}</span>
+                                <div class="no-video-badge">Без видео • Чат</div>
+                            </div>
+                        {% endif %}
+
                         <div class="room-body">
                             <div>
                                 <div class="room-title">{{ room.name }}</div>
-                                <div class="room-desc">{{ room.description|default:"Совместный просмотр видео в ZetRoom." }}</div>
+                                <div class="room-desc">{{ room.description|default:"Совместный просмотр видео в Zetroom." }}</div>
                             </div>
                             <div class="room-footer">
                                 <span class="host-name">ХОСТ: {{ room.host.username }}</span>
