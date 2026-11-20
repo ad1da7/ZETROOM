@@ -35,4 +35,3 @@ class Message(models.Model):
     def __str__(self):
         return f"Сообщение от {self.user}"
 
-#
