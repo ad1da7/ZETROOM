@@ -12,15 +12,29 @@ class ChatConsumer(AsyncWebsocketConsumer):
         await self.accept()
 
     async def disconnect(self, close_code):
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            {
+                'type': 'voice_signal_message',
+                'data': {'type': 'voice_leave', 'sender': self.channel_name}
+            }
+        )
         await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
 
     async def receive(self, text_data):
         data = json.loads(text_data)
+        msg_type = data.get('type')
 
-        if data.get('type') == 'video_sync':
+        if msg_type == 'video_sync':
             await self.channel_layer.group_send(
                 self.room_group_name,
                 {'type': 'video_sync_message', 'data': data}
+            )
+        elif msg_type in ['voice_join', 'voice_offer', 'voice_answer', 'voice_ice', 'voice_leave']:
+            data['sender'] = self.channel_name
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {'type': 'voice_signal_message', 'data': data}
             )
         elif data.get('message'):
             username = data.get('username', 'Гость')
@@ -50,3 +64,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     async def video_sync_message(self, event):
         await self.send(text_data=json.dumps(event['data']))
+
+    async def voice_signal_message(self, event):
+        if event['data'].get('sender') != self.channel_name:
+            await self.send(text_data=json.dumps(event['data']))
