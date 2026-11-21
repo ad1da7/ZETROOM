@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Zetroom | {{ room.name }}</title>
+    <title>ZetRoom | {{ room.name }}</title>
     <link href="https://googleapis.com" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; border-radius: 0 !important; }
@@ -12,22 +12,28 @@
         body {
             font-family: 'Inter', sans-serif;
             min-height: 100vh;
-            background:
-                linear-gradient(rgba(248, 200, 212, 0.55), rgba(248, 200, 212, 0.65)),
-                url("{% static 'images/vice_city.png' %}") no-repeat center center fixed;
-            background-size: cover;
-            background-color: #f8c8d4;
-            color: #1e161a;
+            background-color: #f4e6ea;
+            color: #141416;
             position: relative;
             overflow-x: hidden;
         }
+
+        .palm-left, .palm-right {
+            position: fixed;
+            bottom: 0;
+            z-index: 0;
+            pointer-events: none;
+            opacity: 0.08;
+        }
+        .palm-left { left: -20px; width: 320px; }
+        .palm-right { right: -20px; width: 340px; transform: scaleX(-1); }
 
         .navbar {
             position: sticky;
             top: 0;
             z-index: 100;
-            background-color: #1e161a;
-            border-bottom: 3px solid #d65a7b;
+            background-color: #141416;
+            border-bottom: 3px solid #d94e78;
             padding: 0 32px;
             height: 68px;
             display: flex;
@@ -36,22 +42,16 @@
             gap: 16px;
         }
 
-        .brand-logo {
-            display: flex;
-            align-items: center;
+        .vice-logo {
+            font-family: 'Oswald', sans-serif;
+            font-size: 1.8rem;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
             text-decoration: none;
-            height: 100%;
+            color: #ffffff;
         }
 
-        .brand-logo img {
-            height: 44px;
-            width: auto;
-            object-fit: contain;
-            display: block;
-            transition: transform 0.15s ease;
-        }
-
-        .brand-logo:hover img { transform: scale(1.03); }
 
         .nav-right {
             display: flex;
@@ -60,9 +60,9 @@
         }
 
         .sync-badge {
-            background: #2d2026;
-            border: 1px solid #543b47;
-            color: #f8c8d4;
+            background: #222225;
+            border: 1px solid #3f3f46;
+            color: #ffffff;
             font-family: 'Oswald', sans-serif;
             font-size: 0.85rem;
             letter-spacing: 1px;
@@ -79,9 +79,9 @@
         }
 
         .btn-leave {
-            background: #d65a7b;
+            background: #d94e78;
             color: #ffffff;
-            border: 1px solid #d65a7b;
+            border: 1px solid #d94e78;
             padding: 9px 18px;
             text-decoration: none;
             font-family: 'Oswald', sans-serif;
@@ -92,8 +92,8 @@
         }
 
         .btn-leave:hover {
-            background: #b84463;
-            border-color: #b84463;
+            background: #b83b62;
+            border-color: #b83b62;
         }
         .room-wrapper {
             position: relative;
@@ -105,8 +105,8 @@
 
         .room-info-bar {
             background: #ffffff;
-            border: 2px solid #1e161a;
-            box-shadow: 6px 6px 0px #1e161a;
+            border: 2px solid #141416;
+            box-shadow: 6px 6px 0px #141416;
             padding: 18px 24px;
             margin-bottom: 24px;
             display: flex;
@@ -121,12 +121,12 @@
             font-size: 1.7rem;
             text-transform: uppercase;
             letter-spacing: 1px;
-            color: #1e161a;
+            color: #141416;
         }
 
         .room-sub {
             font-size: 0.88rem;
-            color: #6b4c57;
+            color: #52525b;
             margin-top: 2px;
             font-weight: 600;
         }
@@ -135,21 +135,21 @@
             display: flex;
             align-items: center;
             gap: 10px;
-            background: #fce8ed;
-            border: 2px solid #1e161a;
+            background: #f4e6ea;
+            border: 2px solid #141416;
             padding: 6px 12px;
         }
 
         .id-text {
             font-family: monospace;
             font-size: 0.85rem;
-            color: #1e161a;
+            color: #141416;
             font-weight: 700;
         }
 
         .btn-copy {
-            background: #1e161a;
-            color: #f8c8d4;
+            background: #141416;
+            color: #ffffff;
             border: none;
             padding: 6px 14px;
             font-family: 'Oswald', sans-serif;
@@ -160,7 +160,7 @@
             transition: 0.15s;
         }
 
-        .btn-copy:hover { background: #d65a7b; color: #ffffff; }
+        .btn-copy:hover { background: #d94e78; }
 
         .main-grid {
             display: flex;
@@ -177,9 +177,9 @@
         .video-frame {
             width: 100%;
             aspect-ratio: 16/9;
-            background: #1e161a;
-            border: 2px solid #1e161a;
-            box-shadow: 6px 6px 0px #1e161a;
+            background: #141416;
+            border: 2px solid #141416;
+            box-shadow: 6px 6px 0px #141416;
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -195,20 +195,20 @@
 
         .video-tools {
             background: #ffffff;
-            border: 2px solid #1e161a;
+            border: 2px solid #141416;
             border-top: none;
-            box-shadow: 6px 6px 0px #1e161a;
+            box-shadow: 6px 6px 0px #141416;
             padding: 12px 18px;
             display: flex;
             justify-content: space-between;
             align-items: center;
             font-size: 0.85rem;
             font-weight: 600;
-            color: #6b4c57;
+            color: #52525b;
         }
 
         .ext-link {
-            color: #d65a7b;
+            color: #d94e78;
             text-decoration: none;
             font-family: 'Oswald', sans-serif;
             letter-spacing: 0.5px;
@@ -221,8 +221,8 @@
             flex: 1;
             min-width: 320px;
             background: #ffffff;
-            border: 2px solid #1e161a;
-            box-shadow: 6px 6px 0px #d65a7b;
+            border: 2px solid #141416;
+            box-shadow: 6px 6px 0px #d94e78;
             padding: 20px;
             display: flex;
             flex-direction: column;
@@ -234,10 +234,10 @@
             font-size: 1rem;
             text-transform: uppercase;
             letter-spacing: 1px;
-            color: #1e161a;
+            color: #141416;
             margin-bottom: 10px;
             padding-bottom: 6px;
-            border-bottom: 2px solid #1e161a;
+            border-bottom: 2px solid #141416;
             display: flex;
             justify-content: space-between;
         }
@@ -251,9 +251,9 @@
         }
 
         .participant-tag {
-            background: #fce8ed;
-            border: 1px solid #1e161a;
-            color: #1e161a;
+            background: #f4e6ea;
+            border: 1px solid #141416;
+            color: #141416;
             padding: 4px 10px;
             font-size: 0.82rem;
             font-weight: 700;
@@ -262,8 +262,8 @@
         .chat-box {
             flex: 1;
             overflow-y: auto;
-            background: #fce8ed;
-            border: 2px solid #1e161a;
+            background: #f4e6ea;
+            border: 2px solid #141416;
             padding: 12px;
             margin-bottom: 14px;
             min-height: 260px;
@@ -271,19 +271,19 @@
 
         .message-item {
             background: #ffffff;
-            border: 1px solid #1e161a;
-            border-left: 4px solid #d65a7b;
+            border: 1px solid #141416;
+            border-left: 4px solid #d94e78;
             padding: 8px 10px;
             margin-bottom: 8px;
             font-size: 0.9rem;
-            color: #1e161a;
+            color: #141416;
             line-height: 1.35;
             word-break: break-word;
         }
 
         .message-author {
             font-family: 'Oswald', sans-serif;
-            color: #d65a7b;
+            color: #d94e78;
             letter-spacing: 0.5px;
             margin-right: 6px;
             text-transform: uppercase;
@@ -297,20 +297,20 @@
         .chat-form input {
             flex: 1;
             padding: 12px;
-            border: 2px solid #1e161a;
-            background: #fce8ed;
-            color: #1e161a;
+            border: 2px solid #141416;
+            background: #f4e6ea;
+            color: #141416;
             font-family: 'Inter', sans-serif;
             font-size: 0.92rem;
             outline: none;
         }
 
-        .chat-form input:focus { border-color: #d65a7b; background: #ffffff; }
+        .chat-form input:focus { border-color: #d94e78; background: #ffffff; }
 
         .chat-form button {
-            background: #1e161a;
-            color: #f8c8d4;
-            border: 2px solid #1e161a;
+            background: #141416;
+            color: #ffffff;
+            border: 2px solid #141416;
             padding: 0 18px;
             font-family: 'Oswald', sans-serif;
             font-size: 1rem;
@@ -320,9 +320,8 @@
         }
 
         .chat-form button:hover {
-            background: #d65a7b;
-            border-color: #d65a7b;
-            color: #ffffff;
+            background: #d94e78;
+            border-color: #d94e78;
         }
 
         @media (max-width: 900px) {
@@ -332,14 +331,27 @@
     </style>
 </head>
 <body>
+    <svg class="palm-left" viewBox="0 0 200 260" fill="#141416">
+        <path d="M92 260 C95 190 85 130 70 80 L82 78 C98 130 108 190 105 260 Z"/>
+        <path d="M75 82 C45 65 15 75 0 95 C22 86 48 84 72 92 Z"/>
+        <path d="M76 78 C50 45 20 40 2 52 C25 52 50 60 72 84 Z"/>
+        <path d="M80 76 C75 35 55 12 35 5 C52 20 65 45 75 80 Z"/>
+        <path d="M82 78 C110 45 145 45 168 62 C142 56 112 62 84 85 Z"/>
+    </svg>
+    <svg class="palm-right" viewBox="0 0 200 260" fill="#141416">
+        <path d="M92 260 C95 190 85 130 70 80 L82 78 C98 130 108 190 105 260 Z"/>
+        <path d="M75 82 C45 65 15 75 0 95 C22 86 48 84 72 92 Z"/>
+        <path d="M76 78 C50 45 20 40 2 52 C25 52 50 60 72 84 Z"/>
+        <path d="M80 76 C75 35 55 12 35 5 C52 20 65 45 75 80 Z"/>
+        <path d="M82 78 C110 45 145 45 168 62 C142 56 112 62 84 85 Z"/>
+    </svg>
+
     <nav class="navbar">
-        <a href="{% url 'index' %}" class="brand-logo">
-            <img src="{% static 'images/logo.png' %}" alt="Zetroom">
-        </a>
+        <a href="{% url 'index' %}" class="vice-logo">ZETROOM</a>
 
         <div class="nav-right">
             <div class="sync-badge">
-                <span class="sync-dot"></span> Zetroom SYNC
+                <span class="sync-dot"></span> ZETROOM SYNC
             </div>
             <a href="{% url 'index' %}" class="btn-leave">← Выйти из комнаты</a>
         </div>
@@ -362,11 +374,11 @@
             <div class="video-section">
                 <div class="video-frame" id="player-container" data-video-url="{{ room.video_url|default:'' }}">
                     {% if not room.video_url %}
-                        <h2 style="font-family: 'Oswald', sans-serif; color: #f8c8d4; letter-spacing: 1px;">ССЫЛКА НА ВИДЕО НЕ ДОБАВЛЕНА</h2>
+                        <h2 style="font-family: 'Oswald', sans-serif; color: #71717a; letter-spacing: 1px;">ССЫЛКА НА ВИДЕО НЕ ДОБАВЛЕНА</h2>
                     {% endif %}
                 </div>
                 <div class="video-tools">
-                    <span>Кинозал Zetroom • Синхронный режим</span>
+                    <span>Кинозал ZetRoom • Синхронный режим</span>
                     {% if room.video_url %}
                         <a href="{{ room.video_url }}" target="_blank" class="ext-link">Открыть источник ↗</a>
                     {% endif %}
@@ -394,7 +406,7 @@
                             <span class="message-author">{{ msg.user }}:</span> {{ msg.text }}
                         </div>
                     {% empty %}
-                        <p id="empty-chat-msg" style="color: #8c6674; text-align: center; margin-top: 30px; font-size: 0.9rem;">В чате пока тихо...</p>
+                        <p id="empty-chat-msg" style="color: #71717a; text-align: center; margin-top: 30px; font-size: 0.9rem;">В чате пока тихо...</p>
                     {% endfor %}
                 </div>
 
