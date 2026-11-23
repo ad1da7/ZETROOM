@@ -35,12 +35,14 @@ def register_view(request):
                     fail_silently=False,
                 )
             except Exception as e:
-                # Если произошла ошибка при отправке, выводим её в консоль сервера
                 print(f"!!! ОШИБКА ОТПРАВКИ ПОЧТЫ: {e}")
                 messages.error(request, 'Не удалось отправить письмо с кодом. Проверьте настройки почты.')
                 return render(request, 'register.html', {'form': form})
 
             return redirect('verify_email')
+        else:
+            # ЭТО ВЫВЕДЕТ ОШИБКИ В ТЕРМИНАЛ, ЧТОБЫ ТЫ УВИДЕЛ ПРИЧИНУ
+            print("ФОРМА НЕ ПРОШЛА ВАЛИДАЦИЮ. ОШИБКИ:", form.errors)
     else:
         form = CustomRegisterForm()
 
