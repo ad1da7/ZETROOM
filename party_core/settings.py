@@ -1,13 +1,14 @@
 from pathlib import Path
 import os
 
+BASE_DIR = Path(__file__).resolve().parent.parent
+
 try:
     from dotenv import load_dotenv
-    load_dotenv()
+    load_dotenv(BASE_DIR / '.env')
 except ImportError:
     pass
 
-BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = 'django-insecure-f8bps15&!h0ng_ymvwip3c$k$+fy33q32xkguc9^s82r!=%0nq'
 
