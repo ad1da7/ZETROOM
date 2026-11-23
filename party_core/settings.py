@@ -80,16 +80,20 @@ STATIC_URL = 'static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 
 # ==========================================
-# НАСТРОЙКИ ПОЧТЫ (SMTP через ISPmanager)
+# НАСТРОЙКИ ПОЧТЫ (SMTP через Яндекс)
 # ==========================================
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'mail.zetroom.ru'
-EMAIL_PORT = 465
-EMAIL_USE_SSL = True
-EMAIL_USE_TLS = False
-EMAIL_HOST_USER = 'zetroom@zetroom.ru'
-EMAIL_HOST_PASSWORD = 'lL6dH6xX6yiK5gT0'
-DEFAULT_FROM_EMAIL = 'zetroom@zetroom.ru'
+if os.getenv('EMAIL_HOST_PASSWORD'):
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    EMAIL_HOST = 'smtp.yandex.ru'
+    EMAIL_PORT = 465
+    EMAIL_USE_SSL = True
+    EMAIL_USE_TLS = False
+    EMAIL_HOST_USER = 'ad1ba7@yandex.ru'
+    EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
+    DEFAULT_FROM_EMAIL = 'Zetroom <ad1ba7@yandex.ru>'
+else:
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+    DEFAULT_FROM_EMAIL = 'noreply@zetroom.local'
 # ==========================================
 
 ASGI_APPLICATION = 'party_core.asgi.application'
