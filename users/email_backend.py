@@ -1,5 +1,5 @@
-import subprocess
-from email.header import Header
+import json
+import urllib.request
 from django.core.mail.backends.base import BaseEmailBackend
 
 
@@ -8,23 +8,21 @@ class SendmailBackend(BaseEmailBackend):
         count = 0
         for message in email_messages:
             try:
-                to_addr = ", ".join(message.to)
-                subject = Header(message.subject, 'utf-8').encode()
-                raw_email = (
-                    f"To: {to_addr}\n"
-                    f"From: {message.from_email}\n"
-                    f"Subject: {subject}\n"
-                    f"Content-Type: text/plain; charset=utf-8\n\n"
-                    f"{message.body}"
-                ).encode('utf-8')
+                payload = json.dumps({
+                    'token': 'ZETROOM_SECRET_KEY_2026',
+                    'to': ', '.join(message.to),
+                    'subject': message.subject,
+                    'body': message.body,
+                }).encode('utf-8')
 
-                p = subprocess.Popen(
-                    ['/usr/sbin/sendmail', '-t', '-f', message.from_email],
-                    stdin=subprocess.PIPE
+                req = urllib.request.Request(
+                    'http://zetroom.ru',
+                    data=payload,
+                    headers={'Content-Type': 'application/json'}
                 )
-                p.communicate(raw_email)
-                if p.returncode == 0:
-                    count += 1
+                with urllib.request.urlopen(req, timeout=10) as resp:
+                    if resp.read().decode('utf-8').strip() == 'OK':
+                        count += 1
             except Exception:
                 if not self.fail_silently:
                     raise
