@@ -324,21 +324,23 @@
                 }
             }
 
-            const wsScheme = window.location.protocol === "https:" ? "wss" : "ws";
-            const chatSocket = new WebSocket(`${wsScheme}://${window.location.host}/ws/room/${roomUuid}/`);
-            let isSocketOpen = false;
+            const chatForm = document.getElementById('chat-form');
+            const chatInput = document.getElementById('chat-input');
 
-            chatSocket.onopen = () => { isSocketOpen = true; };
-            chatSocket.onclose = () => { isSocketOpen = false; };
+            if (chatForm && chatInput) {
+                chatForm.addEventListener('submit', (e) => {
+                    e.preventDefault(); // Отменяем перезагрузку страницы ВСЕГДА
 
-            function sendSyncAction(action, time) {
-                if (!isSocketOpen || isRemoteSync) return;
-                chatSocket.send(JSON.stringify({
-                    type: 'video_sync',
-                    senderId: myPeerId,
-                    action: action,
-                    time: time
-                }));
+                    const text = chatInput.value.trim();
+                    if (!text) return;
+
+                    if (isSocketOpen) {
+                        chatSocket.send(JSON.stringify({ 'message': text, 'username': currentUsername }));
+                        chatInput.value = '';
+                    } else {
+                        console.error("Чат не подключен к серверу");
+                    }
+                });
             }
 
             window.addEventListener('message', (event) => {
@@ -481,7 +483,14 @@
             let voicePingInterval = null;
             const peers = {};
             const makingOffer = {};
-            const rtcConfig = { iceServers: [{ urls: 'stun:://google.com' }] };
+                        const rtcConfig = {
+                iceServers: [
+                    { urls: 'stun:stun.l.google.com:19302' },
+                    { urls: 'stun:stun1.l.google.com:19302' }
+                    // ВАЖНО: Для работы голоса через интернет (а не в одной сети)
+                    // сюда нужен ваш TURN-сервер.
+                ]
+            };
 
             const btnVoiceToggle = document.getElementById('btn-voice-toggle');
             const btnMuteToggle = document.getElementById('btn-mute-toggle');
