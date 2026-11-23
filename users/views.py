@@ -26,13 +26,20 @@ def register_view(request):
                 'code': code,
             }
 
-            send_mail(
-                subject='Код подтверждения | ZetRoom',
-                message=f'Ваш код для завершения регистрации в ZetRoom: {code}',
-                from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@zetroom.local'),
-                recipient_list=[form.cleaned_data['email']],
-                fail_silently=False,
-            )
+            try:
+                send_mail(
+                    subject='Код подтверждения | ZetRoom',
+                    message=f'Ваш код для завершения регистрации в ZetRoom: {code}',
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[form.cleaned_data['email']],
+                    fail_silently=False,
+                )
+            except Exception as e:
+                # Если произошла ошибка при отправке, выводим её в консоль сервера
+                print(f"!!! ОШИБКА ОТПРАВКИ ПОЧТЫ: {e}")
+                messages.error(request, 'Не удалось отправить письмо с кодом. Проверьте настройки почты.')
+                return render(request, 'register.html', {'form': form})
+
             return redirect('verify_email')
     else:
         form = CustomRegisterForm()
