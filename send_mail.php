@@ -1,5 +1,4 @@
 <?php
-// Разрешаем вызов только с самого сервера и по секретному ключу
 $data = json_decode(file_get_contents('php://input'), true);
 if (!$data || ($data['token'] ?? '') !== 'ZETROOM_SECRET_KEY_2026') {
     http_response_code(403);

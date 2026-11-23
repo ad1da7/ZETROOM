@@ -18,7 +18,10 @@ class SendmailBackend(BaseEmailBackend):
                 req = urllib.request.Request(
                     'http://zetroom.ru',
                     data=payload,
-                    headers={'Content-Type': 'application/json'}
+                    headers={
+                        'Content-Type': 'application/json',
+                        'User-Agent': 'Mozilla/5.0',
+                    }
                 )
                 with urllib.request.urlopen(req, timeout=10) as resp:
                     if resp.read().decode('utf-8').strip() == 'OK':
