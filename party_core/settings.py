@@ -57,23 +57,12 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'party_core.wsgi.application'
 
-if os.getenv('EMAIL_HOST_PASSWORD'):
-    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-    EMAIL_HOST = 'mail.hosting.reg.ru'
-    EMAIL_PORT = 587
-    EMAIL_USE_TLS = True
-    EMAIL_USE_SSL = False
-    EMAIL_HOST_USER = 'zetroom@zetroom.ru'
-    EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
-    DEFAULT_FROM_EMAIL = 'Zetroom <zetroom@zetroom.ru>'
-
-else:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
-        }
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
+}
 
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
@@ -90,7 +79,7 @@ USE_TZ = True
 STATIC_URL = 'static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 
-# Настройки почты: на сервере (при наличии .env) отправляет через SMTP Рег.ру,
+# Настройки почты: на сервере (при наличии .env) отправляет через sendmail Рег.ру,
 # локально в PyCharm — выводит код в консоль
 if os.getenv('EMAIL_HOST_PASSWORD'):
     EMAIL_BACKEND = 'users.email_backend.SendmailBackend'
@@ -98,7 +87,6 @@ if os.getenv('EMAIL_HOST_PASSWORD'):
 else:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
     DEFAULT_FROM_EMAIL = 'noreply@zetroom.local'
-
 
 ASGI_APPLICATION = 'party_core.asgi.application'
 
