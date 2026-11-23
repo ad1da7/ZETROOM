@@ -13,7 +13,7 @@ SECRET_KEY = 'django-insecure-f8bps15&!h0ng_ymvwip3c$k$+fy33q32xkguc9^s82r!=%0nq
 
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['zetroom.ru', 'www.zetroom.ru', '127.0.0.1', 'localhost']
 
 INSTALLED_APPS = [
     'daphne',
@@ -91,9 +91,19 @@ USE_TZ = True
 STATIC_URL = 'static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 
-# Настройки почты (коды подтверждения выводятся в консоль сервера)
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-DEFAULT_FROM_EMAIL = 'noreply@zetroom.local'
+# Настройки почты: на сервере (при наличии .env) отправляет через SMTP Рег.ру,
+# локально в PyCharm — выводит код в консоль
+if os.getenv('EMAIL_HOST_PASSWORD'):
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    EMAIL_HOST = 'mail.hosting.reg.ru'
+    EMAIL_PORT = 465
+    EMAIL_USE_SSL = True
+    EMAIL_HOST_USER = 'zetroom@zetroom.ru'
+    EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
+    DEFAULT_FROM_EMAIL = 'Zetroom <zetroom@zetroom.ru>'
+else:
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+    DEFAULT_FROM_EMAIL = 'noreply@zetroom.local'
 
 ASGI_APPLICATION = 'party_core.asgi.application'
 

@@ -86,7 +86,7 @@
 <body>
     <div class="auth-box">
         <h1>Подтверждение Email</h1>
-        <p>Мы отправили 6-значный код на <b>{{ email }}</b> (сейчас код печатается в консоли сервера).</p>
+        <p>Мы отправили 6-значный код на <b>{{ email }}</b></p>
         {% if error %}<div class="err">{{ error }}</div>{% endif %}
         <form method="post">
             {% csrf_token %}
