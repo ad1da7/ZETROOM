@@ -5,6 +5,7 @@ from django.contrib.auth import login
 from django.contrib.auth.models import User
 from django.core.mail import send_mail
 from django.conf import settings
+from django.contrib import messages
 from .forms import CustomRegisterForm, ProfileUpdateForm
 from .models import Profile
 
@@ -20,21 +21,22 @@ def register_view(request):
             request.session['reg_data'] = {
                 'username': form.cleaned_data['username'],
                 'email': form.cleaned_data['email'],
-                'password': form.cleaned_data['password1'],
                 'age': form.cleaned_data['age'],
-                'code': code
+                'password': form.cleaned_data['password1'],
+                'code': code,
             }
+
             send_mail(
-                'Код подтверждения Zetroom',
-                f'Ваш код для завершения регистрации: {code}',
-                settings.DEFAULT_FROM_EMAIL,
-                [form.cleaned_data['email']],
+                subject='Код подтверждения | ZetRoom',
+                message=f'Ваш код для завершения регистрации в ZetRoom: {code}',
+                from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@zetroom.local'),
+                recipient_list=[form.cleaned_data['email']],
                 fail_silently=False,
             )
-            print(f"\n{'='*45}\nКОД ПОДТВЕРЖДЕНИЯ ДЛЯ {form.cleaned_data['email']}: {code}\n{'='*45}\n")
             return redirect('verify_email')
     else:
         form = CustomRegisterForm()
+
     return render(request, 'register.html', {'form': form})
 
 
@@ -43,29 +45,26 @@ def verify_email_view(request):
     if not reg_data:
         return redirect('register')
 
-    error = None
     if request.method == 'POST':
         user_code = request.POST.get('code', '').strip()
+
         if user_code == reg_data['code']:
             user = User.objects.create_user(
                 username=reg_data['username'],
                 email=reg_data['email'],
                 password=reg_data['password']
             )
-            user.profile.age = reg_data['age']
-            user.profile.is_email_verified = True
-            user.profile.save()
+            profile, _ = Profile.objects.get_or_create(user=user)
+            profile.age = reg_data['age']
+            profile.save()
 
             del request.session['reg_data']
             login(request, user)
             return redirect('profile')
         else:
-            error = 'НЕВЕРНЫЙ КОД ПОДТВЕРЖДЕНИЯ'
+            messages.error(request, 'Неверный код подтверждения')
 
-    return render(request, 'verify_email.html', {
-        'email': reg_data['email'],
-        'error': error
-    })
+    return render(request, 'verify_email.html', {'email': reg_data['email']})
 
 
 @login_required
