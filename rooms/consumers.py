@@ -68,3 +68,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
     async def voice_signal_message(self, event):
         if event['data'].get('sender') != self.channel_name:
             await self.send(text_data=json.dumps(event['data']))
+
+    async def kick_signal_message(self, event):
+        await self.send(text_data=json.dumps(event['data']))
