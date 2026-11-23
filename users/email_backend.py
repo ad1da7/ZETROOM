@@ -1,5 +1,5 @@
 import json
-import urllib.request
+import subprocess
 from django.core.mail.backends.base import BaseEmailBackend
 
 
@@ -7,26 +7,17 @@ class SendmailBackend(BaseEmailBackend):
     def send_messages(self, email_messages):
         count = 0
         for message in email_messages:
-            try:
-                payload = json.dumps({
-                    'token': 'ZETROOM_SECRET_KEY_2026',
-                    'to': ', '.join(message.to),
-                    'subject': message.subject,
-                    'body': message.body,
-                }).encode('utf-8')
-
-                req = urllib.request.Request(
-                    'http://zetroom.ru',
-                    data=payload,
-                    headers={
-                        'Content-Type': 'application/json',
-                        'User-Agent': 'Mozilla/5.0',
-                    }
-                )
-                with urllib.request.urlopen(req, timeout=10) as resp:
-                    if resp.read().decode('utf-8').strip() == 'OK':
-                        count += 1
-            except Exception:
-                if not self.fail_silently:
-                    raise
+            payload = json.dumps({
+                "to": ", ".join(message.to),
+                "subject": message.subject,
+                "body": message.body
+            })
+            p = subprocess.Popen(
+                ["php", "/var/www/u3734581/data/www/zetroom.ru/send_cli.php"],
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE
+            )
+            out, _ = p.communicate(payload.encode("utf-8"))
+            if out.decode().strip() == "OK":
+                count += 1
         return count
