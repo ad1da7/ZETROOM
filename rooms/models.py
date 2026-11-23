@@ -17,11 +17,13 @@ class Room(models.Model):
 
     description = models.TextField(blank=True, default='')
     video_url = models.URLField(max_length=500, blank=True, default='')
+    thumbnail_url = models.URLField(max_length=500, blank=True, default='')
 
     is_private = models.BooleanField(default=False)
     access_code = models.CharField(max_length=10, blank=True, default='')
     max_participants = models.PositiveIntegerField(default=10)
     is_18_plus = models.BooleanField(default=False)
+    banned_users = models.ManyToManyField(User, related_name='banned_rooms', blank=True)
 
     def save(self, *args, **kwargs):
         if self.is_private and not self.access_code:
