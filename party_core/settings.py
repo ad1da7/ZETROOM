@@ -9,7 +9,6 @@ try:
 except ImportError:
     pass
 
-
 SECRET_KEY = 'django-insecure-f8bps15&!h0ng_ymvwip3c$k$+fy33q32xkguc9^s82r!=%0nq'
 
 DEBUG = True
@@ -80,9 +79,9 @@ USE_TZ = True
 STATIC_URL = 'static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 
-# Настройки почты: на сервере (при наличии .env) отправляет через sendmail Рег.ру,
-# локально в PyCharm — выводит код в консоль
-if os.getenv('EMAIL_HOST_PASSWORD'):
+# На сервере (Linux, где есть /usr/sbin/sendmail) отправляет реальные письма,
+# локально на компьютере в PyCharm — печатает код в консоль
+if os.path.exists('/usr/sbin/sendmail'):
     EMAIL_BACKEND = 'users.email_backend.SendmailBackend'
     DEFAULT_FROM_EMAIL = 'zetroom@zetroom.ru'
 else:
