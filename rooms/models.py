@@ -27,7 +27,16 @@ class Room(models.Model):
     is_18_plus = models.BooleanField(default=False)
     banned_users = models.ManyToManyField(User, related_name='banned_rooms', blank=True)
 
-    # Синхронизация видео, голосовой канал и WebRTC-сигналы в БД SQLite
+    # Тип контента (Фильм, Сериал и т.д.)
+    CONTENT_CHOICES = [
+        ('movie', 'Фильм'),
+        ('series', 'Сериал'),
+        ('cartoon', 'Мультик'),
+        ('cartoon_series', 'Мультсериал'),
+    ]
+    content_type = models.CharField(max_length=20, choices=CONTENT_CHOICES, default='movie')
+
+    # Синхронизация
     is_playing = models.BooleanField(default=False)
     current_time = models.FloatField(default=0.0)
     voice_state = models.JSONField(default=dict, blank=True)

@@ -5,12 +5,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Zetroom | {{ room.name }}</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Oswald:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/custom.css' %}">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; border-radius: 0 !important; }
 
         body {
-            font-family: 'Inter', sans-serif;
+            font-family:'Pricedown',sans-serif;
             min-height: 100vh;
             background:
                 linear-gradient(rgba(248, 200, 212, 0.55), rgba(248, 200, 212, 0.65)),
@@ -36,7 +36,7 @@
             left: 50%;
             bottom: 30px;
             transform: translateX(-50%);
-            font-family: 'Oswald', sans-serif;
+            font-family: 'Pricedown', sans-serif;
             text-transform: uppercase;
             letter-spacing: 1px;
             opacity: 0;
@@ -60,14 +60,14 @@
 
         .sync-badge {
             background: #2d2026; border: 1px solid #543b47; color: #f8c8d4;
-            font-family: 'Oswald', sans-serif; font-size: 0.85rem; letter-spacing: 1px;
+            font-family: 'Pricedown', sans-serif; font-size: 0.85rem; letter-spacing: 1px;
             padding: 9px 14px; display: flex; align-items: center; gap: 8px;
         }
         .sync-dot { width: 8px; height: 8px; background: #10b981; }
 
         .btn-leave {
             background: #d65a7b; color: #ffffff; border: 1px solid #d65a7b;
-            padding: 9px 18px; text-decoration: none; font-family: 'Oswald', sans-serif;
+            padding: 9px 18px; text-decoration: none; font-family: 'Pricedown', sans-serif;
             text-transform: uppercase; letter-spacing: 1px; font-size: 0.9rem; transition: 0.15s;
             display: flex; align-items: center; justify-content: center;
         }
@@ -82,13 +82,13 @@
             padding: 18px 24px; margin-bottom: 24px; display: flex;
             justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;
         }
-        .room-heading { font-family: 'Oswald', sans-serif; font-size: 1.7rem; text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; gap: 10px; }
+        .room-heading { font-family: 'Pricedown', sans-serif; font-size: 1.7rem; text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; gap: 10px; }
         .room-sub { font-size: 0.88rem; color: #6b4c57; margin-top: 2px; font-weight: 600; }
 
         /* Кнопка "Поделиться" */
         .btn-share {
             background: #1e161a; color: #f8c8d4; border: 2px solid #1e161a; padding: 10px 20px;
-            font-family: 'Oswald', sans-serif; text-transform: uppercase; font-size: 0.9rem;
+            font-family: 'Pricedown', sans-serif; text-transform: uppercase; font-size: 0.9rem;
             letter-spacing: 1px; cursor: pointer; transition: 0.15s;
             display: inline-flex; align-items: center; justify-content: center; gap: 8px;
         }
@@ -111,7 +111,7 @@
             justify-content: space-between; align-items: center; font-size: 0.85rem; font-weight: 600; color: #6b4c57;
         }
         .ext-link {
-            color: #d65a7b; text-decoration: none; font-family: 'Oswald', sans-serif;
+            color: #d65a7b; text-decoration: none; font-family: 'Pricedown', sans-serif;
             letter-spacing: 0.5px; text-transform: uppercase;
         }
         .ext-link:hover { text-decoration: underline; }
@@ -129,7 +129,7 @@
         .voice-status { font-size: 0.78rem; color: #6b4c57; font-weight: 600; text-transform: uppercase; }
 
         .section-label {
-            font-family: 'Oswald', sans-serif; font-size: 1rem; text-transform: uppercase;
+            font-family: 'Pricedown', sans-serif; font-size: 1rem; text-transform: uppercase;
             letter-spacing: 1px; color: #1e161a; margin-bottom: 10px; padding-bottom: 6px;
             border-bottom: 2px solid #1e161a; display: flex; justify-content: space-between;
         }
@@ -141,12 +141,12 @@
             display: inline-flex; align-items: center; gap: 6px;
         }
         .host-badge {
-            background: #1e161a; color: #f8c8d4; font-family: 'Oswald', sans-serif;
+            background: #1e161a; color: #f8c8d4; font-family: 'Pricedown', sans-serif;
             font-size: 0.68rem; padding: 1px 5px; letter-spacing: 0.5px; text-transform: uppercase;
         }
         .btn-kick {
             background: #1e161a; color: #ffffff; text-decoration: none;
-            padding: 1px 6px; font-size: 0.72rem; font-family: 'Oswald', sans-serif;
+            padding: 1px 6px; font-size: 0.72rem; font-family: 'Pricedown', sans-serif;
             text-transform: uppercase; border: 1px solid #1e161a; cursor: pointer;
         }
         .btn-kick:hover { background: #c93b5b; border-color: #c93b5b; }
@@ -161,19 +161,19 @@
             line-height: 1.35; word-break: break-word;
         }
         .message-author {
-            font-family: 'Oswald', sans-serif; color: #d65a7b;
+            font-family: 'Pricedown', sans-serif; color: #d65a7b;
             letter-spacing: 0.5px; margin-right: 6px; text-transform: uppercase;
         }
 
         .chat-form { display: flex; gap: 8px; }
         .chat-form input {
             flex: 1; padding: 12px; border: 2px solid #1e161a; background: #fce8ed;
-            color: #1e161a; font-family: 'Inter', sans-serif; font-size: 0.92rem; outline: none;
+            color: #1e161a; font-family: 'Montserrat', sans-serif; font-size: 0.92rem; outline: none;
         }
         .chat-form input:focus { border-color: #d65a7b; background: #ffffff; }
         .chat-form button {
             background: #1e161a; color: #f8c8d4; border: 2px solid #1e161a; padding: 0 18px;
-            font-family: 'Oswald', sans-serif; font-size: 1rem; letter-spacing: 1px; cursor: pointer; transition: 0.15s;
+            font-family: 'Pricedown', sans-serif; font-size: 1rem; letter-spacing: 1px; cursor: pointer; transition: 0.15s;
             display: inline-flex; align-items: center; justify-content: center;
         }
         .chat-form button:hover { background: #d65a7b; border-color: #d65a7b; color: #ffffff; }
@@ -232,7 +232,7 @@
             <div class="video-section">
                 <div class="video-frame" id="player-container" data-video-url="{{ room.video_url|default:'' }}" data-direct-url="{{ direct_stream_url|default:'' }}">
                     {% if not room.video_url %}
-                        <h2 style="font-family: 'Oswald', sans-serif; color: #f8c8d4; letter-spacing: 1px;">ССЫЛКА НА ВИДЕО НЕ ДОБАВЛЕНА</h2>
+                        <h2 style="font-family: 'Pricedown', sans-serif; color: #f8c8d4; letter-spacing: 1px;">ССЫЛКА НА ВИДЕО НЕ ДОБАВЛЕНА</h2>
                     {% endif %}
                 </div>
                 <div class="video-tools">
@@ -246,11 +246,11 @@
             <div class="sidebar">
                 <div class="voice-panel">
                     <div class="voice-controls">
-                        <button type="button" id="btn-voice-toggle" class="btn-copy" style="flex: 1; padding: 10px; font-size: 0.9rem; background: #1e161a; color: #f8c8d4; border: 2px solid #1e161a; cursor: pointer; font-family: 'Oswald'; text-transform: uppercase; display: inline-flex; justify-content: center; align-items: center; gap: 6px;">
+                        <button type="button" id="btn-voice-toggle" class="btn-copy" style="flex: 1; padding: 10px; font-size: 0.9rem; background: #1e161a; color: #f8c8d4; border: 2px solid #1e161a; cursor: pointer; font-family: 'Pricedown'; text-transform: uppercase; display: inline-flex; justify-content: center; align-items: center; gap: 6px;">
                             <svg style="width:15px;height:15px;fill:currentColor;" viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5-3c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
                             <span>Войти в голос</span>
                         </button>
-                        <button type="button" id="btn-mute-toggle" style="display: none; padding: 10px; background: #2d2026; color: #ffffff; border: 2px solid #1e161a; cursor: pointer; font-family: 'Oswald'; text-transform: uppercase; display: none; justify-content: center; align-items: center; gap: 6px;">
+                        <button type="button" id="btn-mute-toggle" style="display: none; padding: 10px; background: #2d2026; color: #ffffff; border: 2px solid #1e161a; cursor: pointer; font-family: 'Pricedown'; text-transform: uppercase; display: none; justify-content: center; align-items: center; gap: 6px;">
                             <svg style="width:15px;height:15px;fill:currentColor;" viewBox="0 0 24 24"><path d="M19 11h-1.7c0 .74-.16 1.43-.43 2.05l1.23 1.23c.56-.98.9-2.09.9-3.28zm-4.02.17c0-.06.02-.11.02-.17V5c0-1.66-1.34-3-3-3S9 3.34 9 5v.18l5.98 5.99zM4.27 3L3 4.27l6.01 6.01V11c0 1.66 1.33 3 2.99 3 .22 0 .44-.03.65-.08l1.66 1.66c-.71.33-1.5.52-2.31.52-2.76 0-5.3-2.1-5.3-5.1H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c.91-.13 1.77-.45 2.54-.9L19.73 21 21 19.73 4.27 3z"/></svg>
                             <span>Выкл. мик</span>
                         </button>
@@ -374,7 +374,7 @@
                 if (isHost) return;
                 const overlay = document.createElement('div');
                 overlay.style.cssText = 'position:absolute;inset:0;background:rgba(30,22,26,0.92);display:flex;flex-direction:column;justify-content:center;align-items:center;gap:14px;z-index:20;';
-                overlay.innerHTML = `<div style="font-family:'Oswald',sans-serif;color:#f8c8d4;font-size:1.3rem;letter-spacing:1px;text-transform:uppercase;text-align:center;padding:0 10px;">ЭФИР ГОТОВ К СИНХРОНИЗАЦИИ</div><button type="button" id="btn-connect-stream" style="background:#d65a7b;color:#fff;border:2px solid #fff;padding:12px 26px;font-family:'Oswald',sans-serif;font-size:1rem;letter-spacing:1px;text-transform:uppercase;cursor:pointer;">ПОДКЛЮЧИТЬСЯ К ЭФИРУ</button>`;
+                overlay.innerHTML = `<div style="font-family: 'Pricedown', sans-serifcolor:#f8c8d4;font-size:1.3rem;letter-spacing:1px;text-transform:uppercase;text-align:center;padding:0 10px;">ЭФИР ГОТОВ К СИНХРОНИЗАЦИИ</div><button type="button" id="btn-connect-stream" style="background:#d65a7b;color:#fff;border:2px solid #fff;padding:12px 26px;font-family: 'Pricedown', sans-seriffont-size:1rem;letter-spacing:1px;text-transform:uppercase;cursor:pointer;">ПОДКЛЮЧИТЬСЯ К ЭФИРУ</button>`;
                 playerContainer.appendChild(overlay);
                 document.getElementById('btn-connect-stream').onclick = () => { viewerConnected = true; overlay.remove(); onConnect(); };
             }

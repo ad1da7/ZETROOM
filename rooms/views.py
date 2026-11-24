@@ -69,14 +69,25 @@ def fetch_video_thumbnail(video_url):
 def index(request):
     query = request.GET.get('q', '').strip()
     age_filter = request.GET.get('age', 'all')
+    content_filter = request.GET.get('content', 'all')
+
     rooms = Room.objects.filter(is_private=False).order_by('-created_at')
     for r in rooms:
         r.cleanup_stale_participants()
+
     if query:
         rooms = rooms.filter(name__icontains=query)
     if age_filter == '18':
         rooms = rooms.filter(is_18_plus=True)
-    return render(request, 'index.html', {'rooms': rooms, 'query': query, 'age_filter': age_filter})
+    if content_filter != 'all':
+        rooms = rooms.filter(content_type=content_filter)
+
+    return render(request, 'index.html', {
+        'rooms': rooms,
+        'query': query,
+        'age_filter': age_filter,
+        'content_filter': content_filter,
+    })
 
 
 def rooms_counts_api(request):
@@ -101,6 +112,8 @@ def create_room(request):
         is_18_plus = request.POST.get('is_18_plus') == 'on'
         is_private = request.POST.get('is_private') == 'on'
 
+        content_type = request.POST.get('content_type', 'movie')
+
         if not name: return redirect('index')
 
         room = Room.objects.create(
@@ -108,6 +121,7 @@ def create_room(request):
             video_url=video_url, thumbnail_url=fetch_video_thumbnail(video_url),
             max_participants=max(1, min(max_participants, 100)),
             is_18_plus=is_18_plus, is_private=is_private,
+            content_type=content_type,
         )
         Participant.objects.get_or_create(room=room, user=request.user)
         return redirect('room_detail', room_uuid=room.uuid)
@@ -217,18 +231,15 @@ def room_sync_api(request, room_uuid):
             except Exception:
                 payload = {}
 
-        # Обновление состояния видео (только хост)
         if is_host and 'video' in payload:
             v = payload['video']
             room.is_playing = bool(v.get('is_playing', room.is_playing))
             room.current_time = float(v.get('current_time', room.current_time))
 
-        # Сохранение чата
         chat_text = (payload.get('chat_message') or '').strip()
         if chat_text:
             Message.objects.create(room=room, user=request.user.username, text=chat_text[:1000])
 
-        # Голосовое состояние
         vs = {k: v for k, v in (room.voice_state or {}).items() if now_ts - v.get('updated_at', 0) < 12}
         v_act = payload.get('voice_action')
         if v_act == 'join':
@@ -242,7 +253,6 @@ def room_sync_api(request, room_uuid):
                 vs[uid_str]['muted'] = bool(payload['muted'])
         room.voice_state = vs
 
-        # WebRTC Сигналы
         sigs = [s for s in (room.webrtc_signals or []) if now_ts - s.get('ts', 0) < 15]
         for s in (payload.get('signals') or []):
             sigs.append(
