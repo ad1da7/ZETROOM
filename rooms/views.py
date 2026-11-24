@@ -1,12 +1,13 @@
 import re
 import json
+import time
 import urllib.request
 from django.shortcuts import render, redirect, get_object_or_404
+from django.http import JsonResponse
+from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
-from channels.layers import get_channel_layer
-from asgiref.sync import async_to_sync
 from .models import Room, Participant, Message
 
 
@@ -14,14 +15,12 @@ def fetch_video_thumbnail(video_url):
     if not video_url:
         return ''
     try:
-        # 1. Для YouTube сразу собираем прямую картинку превью
         if 'youtube.com' in video_url or 'youtu.be' in video_url:
             yt_match = re.search(r'(?:v=|youtu\.be/|shorts/|embed/)([a-zA-Z0-9_-]{11})', video_url)
             if yt_match:
                 yt_id = yt_match.group(1)
                 return "https://youtube.com" + f"/vi/{yt_id}/hqdefault.jpg"
 
-        # 2. Для Rutube, ВК Видео и любых других сайтов берем обложку из тега og:image со страницы видео
         req = urllib.request.Request(
             video_url,
             headers={
@@ -31,16 +30,13 @@ def fetch_video_thumbnail(video_url):
         )
         with urllib.request.urlopen(req, timeout=5) as resp:
             html = resp.read().decode('utf-8', errors='ignore')
-            # Ищем meta тег og:image в любом порядке атрибутов
             og_match = re.search(r'<meta[^>]+(?:property|name)=["\']og:image["\'][^>]+content=["\']([^"\']+)["\']',
                                  html, re.IGNORECASE)
             if not og_match:
                 og_match = re.search(r'<meta[^>]+content=["\']([^"\']+)["\'][^>]+(?:property|name)=["\']og:image["\']',
                                      html, re.IGNORECASE)
             if og_match:
-                img_url = og_match.group(1).replace('&amp;', '&')
-                print(f"[THUMBNAIL OK] Найдена обложка: {img_url}")
-                return img_url
+                return og_match.group(1).replace('&amp;', '&')
     except Exception as e:
         print(f"[THUMBNAIL ERROR] Не удалось получить обложку: {e}")
     return ''
@@ -137,22 +133,7 @@ def kick_user(request, room_uuid, user_id):
         target_user = get_object_or_404(User, id=user_id)
         room.banned_users.add(target_user)
         Participant.objects.filter(room=room, user=target_user).delete()
-
-        channel_layer = get_channel_layer()
-        async_to_sync(channel_layer.group_send)(
-            f'room_{room.uuid}',
-            {
-                'type': 'kick_signal_message',
-                'data': {
-                    'type': 'user_kicked',
-                    'kicked_user_id': target_user.id,
-                    'kicked_username': target_user.username
-                }
-            }
-        )
     return redirect('room_detail', room_uuid=room.uuid)
-
-
 @login_required
 def join_room(request):
     if request.method == 'POST':
@@ -230,4 +211,90 @@ def room_detail(request, room_uuid):
         'room': room,
         'participants': participants,
         'messages': messages
+    })
+
+
+@login_required
+def room_sync_api(request, room_uuid):
+    room = get_object_or_404(Room, uuid=room_uuid)
+
+    if room.banned_users.filter(id=request.user.id).exists():
+        return JsonResponse({'kicked': True})
+
+    state_key = f'room_video_state_{room.uuid}'
+    voice_key = f'room_voice_signals_{room.uuid}'
+
+    if request.method == 'POST':
+        try:
+            payload = json.loads(request.body.decode('utf-8'))
+        except Exception:
+            return JsonResponse({'ok': False}, status=400)
+
+        kind = payload.get('kind')
+
+        # 1. Обновление состояния видеоплеера (play, pause, seek)
+        if kind == 'video_sync':
+            action = payload.get('action')
+            if action in ('play', 'pause', 'seek'):
+                current_state = cache.get(state_key, {'version': 0})
+                new_state = {
+                    'version': current_state.get('version', 0) + 1,
+                    'action': action,
+                    'time': float(payload.get('time', 0)),
+                    'senderId': payload.get('senderId', ''),
+                    'updated_at': time.time()
+                }
+                cache.set(state_key, new_state, timeout=86400)
+                return JsonResponse({'ok': True, 'state': new_state})
+
+        # 2. Отправка нового сообщения в чат
+        elif kind == 'chat_message':
+            text = str(payload.get('message', '')).strip()
+            if text:
+                msg = Message.objects.create(room=room, user=request.user.username, text=text)
+                return JsonResponse({'ok': True, 'id': msg.id})
+
+        # 3. Сигналы голосового чата (WebRTC)
+        elif kind == 'voice_signal':
+            signals = cache.get(voice_key, [])
+            seq = (signals[-1]['seq'] + 1) if signals else 1
+            signals.append({
+                'seq': seq,
+                'data': payload.get('data', {}),
+                'ts': time.time()
+            })
+            # Храним только последние 60 сигналов
+            cache.set(voice_key, signals[-60:], timeout=3600)
+            return JsonResponse({'ok': True, 'seq': seq})
+
+        return JsonResponse({'ok': True})
+
+    # GET-запрос: отдаем актуальное состояние видео, новые сообщения и сигналы
+    last_msg_id = int(request.GET.get('last_msg_id', 0))
+    last_voice_seq = int(request.GET.get('last_voice_seq', 0))
+
+    new_msgs_qs = room.messages.filter(id__gt=last_msg_id).order_by('id')
+    new_messages = [
+        {'id': m.id, 'username': m.user, 'message': m.text}
+        for m in new_msgs_qs
+    ]
+
+    video_state = cache.get(state_key, None)
+    if video_state and video_state.get('action') == 'play':
+        # Корректируем текущую секунду с учетом прошедшего времени
+        elapsed = max(0.0, time.time() - video_state.get('updated_at', time.time()))
+        video_state = dict(video_state)
+        video_state['adjusted_time'] = video_state.get('time', 0) + elapsed
+    elif video_state:
+        video_state = dict(video_state)
+        video_state['adjusted_time'] = video_state.get('time', 0)
+
+    all_signals = cache.get(voice_key, [])
+    new_signals = [s for s in all_signals if s['seq'] > last_voice_seq]
+
+    return JsonResponse({
+        'kicked': False,
+        'video_state': video_state,
+        'messages': new_messages,
+        'voice_signals': new_signals
     })

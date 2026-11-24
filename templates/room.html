@@ -223,7 +223,7 @@
                 </div>
                 <div class="chat-box" id="chat-box">
                     {% for msg in messages %}
-                        <div class="message-item"><span class="message-author">{{ msg.user }}:</span> {{ msg.text }}</div>
+                        <div class="message-item" data-msg-id="{{ msg.id }}"><span class="message-author">{{ msg.user }}:</span> {{ msg.text }}</div>
                     {% empty %}
                         <p id="empty-chat-msg" style="color: #8c6674; text-align: center; margin-top: 30px; font-size: 0.9rem;">В чате пока тихо...</p>
                     {% endfor %}
@@ -261,77 +261,93 @@
         document.addEventListener("DOMContentLoaded", () => {
             const roomUuid = JSON.parse(document.getElementById('room-uuid').textContent);
             const currentUsername = JSON.parse(document.getElementById('current-username').textContent);
-            const currentUserId = JSON.parse(document.getElementById('current-user-id').textContent);
             const myPeerId = currentUsername + '_' + Math.random().toString(36).substring(2, 8);
+            const syncUrl = `/room/${roomUuid}/sync/`;
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
             const playerContainer = document.getElementById('player-container');
             const syncStatusText = document.getElementById('sync-status-text');
             const wsDot = document.getElementById('ws-status-dot');
             const rawUrl = playerContainer ? playerContainer.getAttribute('data-video-url').trim() : '';
 
-            const wsScheme = window.location.protocol === "https:" ? "wss" : "ws";
-            const chatSocket = new WebSocket(`${wsScheme}://${window.location.host}/ws/room/${roomUuid}/`);
-            let isSocketOpen = false;
-
-            chatSocket.onopen = () => {
-                isSocketOpen = true;
-                if (wsDot) wsDot.style.background = '#10b981';
-                chatSocket.send(JSON.stringify({ type: 'video_sync', action: 'request_state', senderId: myPeerId }));
-            };
-
-            chatSocket.onclose = () => {
-                isSocketOpen = false;
-                if (wsDot) wsDot.style.background = '#ef4444';
-            };
-
-            function sendSyncAction(action, time) {
-                if (!isSocketOpen) return;
-                chatSocket.send(JSON.stringify({ type: 'video_sync', action: action, time: time, senderId: myPeerId }));
+            async function postSync(payload) {
+                try {
+                    const res = await fetch(syncUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                        body: JSON.stringify(payload)
+                    });
+                    if (res.ok && wsDot) wsDot.style.background = '#10b981';
+                    return res.ok ? await res.json() : null;
+                } catch (e) {
+                    if (wsDot) wsDot.style.background = '#ef4444';
+                    return null;
+                }
             }
 
+            let lastAppliedVersion = 0;
+
+            async function sendSyncAction(action, time) {
+                const resp = await postSync({ kind: 'video_sync', action: action, time: time, senderId: myPeerId });
+                if (resp && resp.state && resp.state.version) {
+                    lastAppliedVersion = Math.max(lastAppliedVersion, resp.state.version);
+                }
+            }
             let videoElement = null;
             let iframeElement = null;
             let playerPlatform = 'mp4';
             let isRemoteSync = false;
             let lastKnownTime = 0;
-            let isPlaying = false;
             let syncGuardTimer = null;
 
             function triggerLocalSyncGuard() {
                 isRemoteSync = true;
                 if (syncGuardTimer) clearTimeout(syncGuardTimer);
-                syncGuardTimer = setTimeout(() => { isRemoteSync = false; }, 1200);
+                syncGuardTimer = setTimeout(() => { isRemoteSync = false; }, 1400);
             }
 
             if (playerContainer && rawUrl) {
                 let embedUrl = null;
-                const rtMatch = rawUrl.match(/rutube\.ru\/(?:video|play\/embed|shorts)\/([a-zA-Z0-9_-]+)/);
-                if (rtMatch && rtMatch) {
-                    embedUrl = `https://rutube.ru{rtMatch}`;
-                    playerPlatform = 'rutube';
+
+                if (rawUrl.includes('rutube.ru')) {
+                    const cleanRt = rawUrl.split('?').at(0).replace(/\/+$/, '');
+                    const rtId = cleanRt.split('/').pop();
+                    if (rtId && rtId !== 'rutube.ru') {
+                        embedUrl = `https://rutube.ru{rtId}`;
+                        playerPlatform = 'rutube';
+                    }
                 }
+
                 if (!embedUrl && (rawUrl.includes('vk.com') || rawUrl.includes('vkvideo.ru'))) {
-                    const vkMatch = rawUrl.match(/video(-?\d+)_(\d+)/);
-                    if (vkMatch && vkMatch && vkMatch) {
-                        embedUrl = `https://vk.com{vkMatch}&id=${vkMatch}&hd=2&js_api=1`;
+                    const vkPart = rawUrl.split('video').pop().split('?').at(0);
+                    const vkIds = vkPart.split('_');
+                    if (vkIds.length >= 2) {
+                        embedUrl = `https://vk.com{vkIds.at(0)}&id=${vkIds.at(1)}&hd=2&js_api=1`;
                         playerPlatform = 'vk';
                     }
                 }
+
                 if (!embedUrl && (rawUrl.includes('youtube.com') || rawUrl.includes('youtu.be'))) {
-                    const ytMatch = rawUrl.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
-                    if (ytMatch && ytMatch) {
-                        embedUrl = `https://youtube.com{ytMatch}?enablejsapi=1`;
+                    let ytId = '';
+                    if (rawUrl.includes('youtu.be/')) ytId = rawUrl.split('youtu.be/').pop().split('?').at(0);
+                    else if (rawUrl.includes('v=')) ytId = rawUrl.split('v=').pop().split('&').at(0);
+                    else if (rawUrl.includes('shorts/')) ytId = rawUrl.split('shorts/').pop().split('?').at(0);
+                    else if (rawUrl.includes('embed/')) ytId = rawUrl.split('embed/').pop().split('?').at(0);
+                    if (ytId) {
+                        embedUrl = `https://youtube.com{ytId}?enablejsapi=1`;
                         playerPlatform = 'youtube';
                     }
                 }
+
                 if (embedUrl) {
-                    playerContainer.innerHTML = `<iframe id="sync-iframe" src="${embedUrl}" referrerpolicy="strict-origin-when-cross-origin" allow="autoplay; encrypted-media; fullscreen; picture-in-picture" allowfullscreen></iframe>`;
+                    playerContainer.innerHTML = `<iframe id="sync-iframe" src="${embedUrl}" allow="autoplay; encrypted-media; fullscreen; picture-in-picture; screen-wake-lock;" allowfullscreen></iframe>`;
                     iframeElement = document.getElementById('sync-iframe');
                 } else {
                     playerContainer.innerHTML = `<video id="video-player" controls><source src="${rawUrl}" type="video/mp4">Ваш браузер не поддерживает видео.</video>`;
                     videoElement = document.getElementById('video-player');
                 }
             }
+
             window.addEventListener('message', (event) => {
                 if (!iframeElement) return;
                 let msg = event.data;
@@ -351,13 +367,11 @@
                     } else if (msg.type === 'player:changeState' && msg.data) {
                         const st = String(msg.data.state || '').toLowerCase();
                         if (st === 'playing' || st === 'play') {
-                            isPlaying = true;
                             if (!isRemoteSync) {
                                 sendSyncAction('play', lastKnownTime);
                                 if (syncStatusText) syncStatusText.textContent = 'Синхронизация: воспроизведение';
                             }
                         } else if (st === 'paused' || st === 'pause' || st === 'stopped') {
-                            isPlaying = false;
                             if (!isRemoteSync) {
                                 sendSyncAction('pause', lastKnownTime);
                                 if (syncStatusText) syncStatusText.textContent = 'Синхронизация: пауза';
@@ -368,127 +382,123 @@
 
                 if (playerPlatform === 'vk') {
                     if (msg.event === 'timeupdate' && typeof msg.time === 'number') {
-                        if (!isRemoteSync && Math.abs(msg.time - lastKnownTime) > 2.2) {
-                            sendSyncAction('seek', msg.time);
-                        }
+                        if (!isRemoteSync && Math.abs(msg.time - lastKnownTime) > 2.2) sendSyncAction('seek', msg.time);
                         lastKnownTime = msg.time;
-                    } else if (msg.event === 'play') {
-                        isPlaying = true;
-                        if (!isRemoteSync) sendSyncAction('play', lastKnownTime);
-                    } else if (msg.event === 'pause') {
-                        isPlaying = false;
-                        if (!isRemoteSync) sendSyncAction('pause', lastKnownTime);
-                    }
+                    } else if (msg.event === 'play' && !isRemoteSync) sendSyncAction('play', lastKnownTime);
+                    else if (msg.event === 'pause' && !isRemoteSync) sendSyncAction('pause', lastKnownTime);
                 }
             });
 
-            function applyIncomingSync(data) {
-                if (data.senderId === myPeerId) return;
-
-                if (data.action === 'request_state') {
-                    const currentTime = videoElement ? videoElement.currentTime : lastKnownTime;
-                    const playingNow = videoElement ? !videoElement.paused : isPlaying;
-                    if (currentTime > 0 || playingNow) {
-                        sendSyncAction(playingNow ? 'play' : 'pause', currentTime);
-                    }
-                    return;
-                }
+            function applyRemoteVideoState(state) {
+                if (!state || state.version <= lastAppliedVersion) return;
+                lastAppliedVersion = state.version;
+                if (state.senderId === myPeerId) return;
 
                 triggerLocalSyncGuard();
+                const targetTime = typeof state.adjusted_time === 'number' ? state.adjusted_time : state.time;
 
                 if (videoElement) {
-                    if (typeof data.time === 'number' && Math.abs(videoElement.currentTime - data.time) > 1.5) {
-                        videoElement.currentTime = data.time;
-                    }
-                    if (data.action === 'play' && videoElement.paused) videoElement.play().catch(() => {});
-                    else if (data.action === 'pause' && !videoElement.paused) videoElement.pause();
+                    if (typeof targetTime === 'number' && Math.abs(videoElement.currentTime - targetTime) > 1.8) videoElement.currentTime = targetTime;
+                    if (state.action === 'play' && videoElement.paused) videoElement.play().catch(() => {});
+                    else if (state.action === 'pause' && !videoElement.paused) videoElement.pause();
                 }
 
                 if (iframeElement && iframeElement.contentWindow) {
                     if (playerPlatform === 'rutube') {
-                        if (typeof data.time === 'number' && Math.abs(lastKnownTime - data.time) > 1.5) {
-                            iframeElement.contentWindow.postMessage(JSON.stringify({
-                                type: 'player:setCurrentTime',
-                                data: { time: data.time }
-                            }), '*');
-                            lastKnownTime = data.time;
+                        if (typeof targetTime === 'number' && Math.abs(lastKnownTime - targetTime) > 1.8) {
+                            iframeElement.contentWindow.postMessage(JSON.stringify({ type: 'player:setCurrentTime', data: { time: targetTime } }), '*');
+                            lastKnownTime = targetTime;
                         }
-                        if (data.action === 'play') {
-                            isPlaying = true;
+                        if (state.action === 'play') {
                             iframeElement.contentWindow.postMessage(JSON.stringify({ type: 'player:play', data: {} }), '*');
                             if (syncStatusText) syncStatusText.textContent = 'Синхронизация: воспроизведение';
-                        } else if (data.action === 'pause') {
-                            isPlaying = false;
+                        } else if (state.action === 'pause') {
                             iframeElement.contentWindow.postMessage(JSON.stringify({ type: 'player:pause', data: {} }), '*');
                             if (syncStatusText) syncStatusText.textContent = 'Синхронизация: пауза';
                         }
                     } else if (playerPlatform === 'vk') {
-                        if (typeof data.time === 'number' && Math.abs(lastKnownTime - data.time) > 1.5) {
-                            iframeElement.contentWindow.postMessage(JSON.stringify({ method: 'seek', time: data.time }), '*');
-                            lastKnownTime = data.time;
+                        if (typeof targetTime === 'number' && Math.abs(lastKnownTime - targetTime) > 1.8) {
+                            iframeElement.contentWindow.postMessage(JSON.stringify({ method: 'seek', time: targetTime }), '*');
+                            lastKnownTime = targetTime;
                         }
-                        if (data.action === 'play') iframeElement.contentWindow.postMessage(JSON.stringify({ method: 'play' }), '*');
-                        if (data.action === 'pause') iframeElement.contentWindow.postMessage(JSON.stringify({ method: 'pause' }), '*');
+                        if (state.action === 'play') iframeElement.contentWindow.postMessage(JSON.stringify({ method: 'play' }), '*');
+                        if (state.action === 'pause') iframeElement.contentWindow.postMessage(JSON.stringify({ method: 'pause' }), '*');
                     } else if (playerPlatform === 'youtube') {
-                        if (typeof data.time === 'number') {
-                            iframeElement.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'seekTo', args: [data.time, true] }), '*');
-                        }
-                        if (data.action === 'play') iframeElement.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), '*');
-                        if (data.action === 'pause') iframeElement.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'pauseVideo', args: [] }), '*');
+                        if (typeof targetTime === 'number') iframeElement.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'seekTo', args: [targetTime, true] }), '*');
+                        if (state.action === 'play') iframeElement.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), '*');
+                        if (state.action === 'pause') iframeElement.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'pauseVideo', args: [] }), '*');
                     }
                 }
             }
-
             if (videoElement) {
                 videoElement.addEventListener('play', () => { if (!isRemoteSync) sendSyncAction('play', videoElement.currentTime); });
                 videoElement.addEventListener('pause', () => { if (!isRemoteSync) sendSyncAction('pause', videoElement.currentTime); });
                 videoElement.addEventListener('seeked', () => { if (!isRemoteSync) sendSyncAction('seek', videoElement.currentTime); });
             }
 
-            chatSocket.onmessage = (e) => {
-                const data = JSON.parse(e.data);
+            let lastMsgId = 0;
+            document.querySelectorAll('.message-item[data-msg-id]').forEach(el => {
+                const id = parseInt(el.getAttribute('data-msg-id'), 10);
+                if (id > lastMsgId) lastMsgId = id;
+            });
+            let lastVoiceSeq = 0;
 
-                if (data.type === 'user_kicked' && data.kicked_user_id === currentUserId) {
-                    alert('Создатель комнаты исключил вас. Повторный вход запрещен.');
-                    window.location.href = '/';
-                    return;
+            function appendChatMessage(m) {
+                if (m.id <= lastMsgId) return;
+                lastMsgId = m.id;
+                const chatBox = document.getElementById('chat-box');
+                const emptyMsg = document.getElementById('empty-chat-msg');
+                if (emptyMsg) emptyMsg.remove();
+                if (chatBox) {
+                    const div = document.createElement('div');
+                    div.className = 'message-item';
+                    div.setAttribute('data-msg-id', m.id);
+                    div.innerHTML = `<span class="message-author">${m.username}:</span> ${m.message}`;
+                    chatBox.appendChild(div);
+                    chatBox.scrollTop = chatBox.scrollHeight;
                 }
+            }
 
-                if (data.message) {
-                    const chatBox = document.getElementById('chat-box');
-                    const emptyMsg = document.getElementById('empty-chat-msg');
-                    if (emptyMsg) emptyMsg.remove();
+            async function pollRoomState() {
+                try {
+                    const res = await fetch(`${syncUrl}?last_msg_id=${lastMsgId}&last_voice_seq=${lastVoiceSeq}`);
+                    if (!res.ok) return;
+                    if (wsDot) wsDot.style.background = '#10b981';
+                    const data = await res.json();
 
-                    if (chatBox) {
-                        const msg = document.createElement('div');
-                        msg.className = 'message-item';
-                        msg.innerHTML = `<span class="message-author">${data.username}:</span> ${data.message}`;
-                        chatBox.appendChild(msg);
-                        chatBox.scrollTop = chatBox.scrollHeight;
+                    if (data.kicked) {
+                        alert('Создатель комнаты исключил вас. Повторный вход запрещен.');
+                        window.location.href = '/';
+                        return;
                     }
+                    if (data.video_state) applyRemoteVideoState(data.video_state);
+                    if (Array.isArray(data.messages)) data.messages.forEach(appendChatMessage);
+                    if (Array.isArray(data.voice_signals)) {
+                        for (const sig of data.voice_signals) {
+                            if (sig.seq > lastVoiceSeq) {
+                                lastVoiceSeq = sig.seq;
+                                await handleVoiceSignal(sig.data);
+                            }
+                        }
+                    }
+                } catch (e) {
+                    if (wsDot) wsDot.style.background = '#ef4444';
                 }
+            }
 
-                if (data.type === 'video_sync') {
-                    applyIncomingSync(data);
-                }
+            pollRoomState();
+            setInterval(pollRoomState, 1200);
 
-                if (data.type && data.type.startsWith('voice_')) {
-                    handleVoiceSignal(data);
-                }
-            };
             const chatForm = document.getElementById('chat-form');
             const chatInput = document.getElementById('chat-input');
-
             if (chatForm && chatInput) {
-                chatForm.addEventListener('submit', (e) => {
+                chatForm.addEventListener('submit', async (e) => {
                     e.preventDefault();
                     const text = chatInput.value.trim();
                     if (!text) return;
-
-                    if (isSocketOpen) {
-                        chatSocket.send(JSON.stringify({ 'message': text, 'username': currentUsername }));
-                        chatInput.value = '';
-                    }
+                    chatInput.value = '';
+                    await postSync({ kind: 'chat_message', message: text });
+                    await pollRoomState();
                 });
             }
 
@@ -498,12 +508,7 @@
             let voicePingInterval = null;
             const peers = {};
             const makingOffer = {};
-            const rtcConfig = {
-                iceServers: [
-                    { urls: 'stun:://google.com' },
-                    { urls: 'stun:://google.com' }
-                ]
-            };
+            const rtcConfig = { iceServers: [{ urls: 'stun:://google.com' }, { urls: 'stun:://google.com' }] };
 
             const btnVoiceToggle = document.getElementById('btn-voice-toggle');
             const btnMuteToggle = document.getElementById('btn-mute-toggle');
@@ -511,41 +516,31 @@
             const remoteAudios = document.getElementById('remote-audios');
 
             function updateVoiceStatus() {
-                if (!isVoiceActive) {
-                    voiceStatusText.textContent = 'Голосовой чат отключен';
-                } else {
+                if (!isVoiceActive) voiceStatusText.textContent = 'Голосовой чат отключен';
+                else {
                     const count = Object.keys(peers).length;
-                    voiceStatusText.textContent = count > 0
-                        ? `В голосовом чате • Собеседников: ${count}`
-                        : 'Вы в голосовом чате (ожидание других...)';
+                    voiceStatusText.textContent = count > 0 ? `В голосовом чате • Собеседников: ${count}` : 'Вы в голосовом чате (ожидание других...)';
                 }
             }
 
             btnVoiceToggle.addEventListener('click', async () => {
                 if (!isVoiceActive) {
                     try {
-                        localStream = await navigator.mediaDevices.getUserMedia({
-                            audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
-                            video: false
-                        });
+                        localStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }, video: false });
                         isVoiceActive = true;
                         btnVoiceToggle.textContent = '📞 Выйти из голоса';
                         btnVoiceToggle.style.background = '#c93b5b';
                         btnMuteToggle.style.display = 'inline-block';
                         updateVoiceStatus();
 
-                        chatSocket.send(JSON.stringify({ type: 'voice_join', peerId: myPeerId }));
+                        postSync({ kind: 'voice_signal', data: { type: 'voice_join', peerId: myPeerId } });
                         voicePingInterval = setInterval(() => {
-                            if (isVoiceActive && isSocketOpen && Object.keys(peers).length === 0) {
-                                chatSocket.send(JSON.stringify({ type: 'voice_join', peerId: myPeerId }));
+                            if (isVoiceActive && Object.keys(peers).length === 0) {
+                                postSync({ kind: 'voice_signal', data: { type: 'voice_join', peerId: myPeerId } });
                             }
-                        }, 2500);
-                    } catch (err) {
-                        alert('Не удалось получить доступ к микрофону: ' + err.message);
-                    }
-                } else {
-                    leaveVoice();
-                }
+                        }, 3000);
+                    } catch (err) { alert('Не удалось получить доступ к микрофону: ' + err.message); }
+                } else leaveVoice();
             });
 
             btnMuteToggle.addEventListener('click', () => {
@@ -565,7 +560,7 @@
                 btnVoiceToggle.style.background = '#1e161a';
                 btnMuteToggle.style.display = 'none';
                 updateVoiceStatus();
-                if (isSocketOpen) chatSocket.send(JSON.stringify({ type: 'voice_leave', peerId: myPeerId }));
+                postSync({ kind: 'voice_signal', data: { type: 'voice_leave', peerId: myPeerId } });
             }
 
             window.addEventListener('beforeunload', () => { if (isVoiceActive) leaveVoice(); });
@@ -574,13 +569,10 @@
                 if (peers[remotePeerId]) peers[remotePeerId].close();
                 const pc = new RTCPeerConnection(rtcConfig);
                 peers[remotePeerId] = pc;
-
                 if (localStream) localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
 
                 pc.onicecandidate = (event) => {
-                    if (event.candidate && isSocketOpen) {
-                        chatSocket.send(JSON.stringify({ type: 'voice_ice', peerId: myPeerId, target: remotePeerId, candidate: event.candidate }));
-                    }
+                    if (event.candidate) postSync({ kind: 'voice_signal', data: { type: 'voice_ice', peerId: myPeerId, target: remotePeerId, candidate: event.candidate } });
                 };
 
                 pc.ontrack = (event) => {
@@ -603,7 +595,6 @@
                         updateVoiceStatus();
                     }
                 };
-
                 updateVoiceStatus();
                 return pc;
             }
@@ -622,17 +613,18 @@
                         const offer = await pc.createOffer();
                         await pc.setLocalDescription(offer);
                         makingOffer[remotePeerId] = false;
-                        chatSocket.send(JSON.stringify({ type: 'voice_offer', peerId: myPeerId, target: remotePeerId, offer: offer }));
+                        postSync({ kind: 'voice_signal', data: { type: 'voice_offer', peerId: myPeerId, target: remotePeerId, offer: offer } });
                     } else if (data.type === 'voice_offer') {
                         const isPolite = myPeerId < remotePeerId;
                         const offerCollision = makingOffer[remotePeerId] || (peers[remotePeerId] && peers[remotePeerId].signalingState !== 'stable');
                         if (offerCollision && !isPolite) return;
 
                         const pc = createPeerConnection(remotePeerId);
+                        const pc = createPeerConnection(remotePeerId);
                         await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
                         const answer = await pc.createAnswer();
                         await pc.setLocalDescription(answer);
-                        chatSocket.send(JSON.stringify({ type: 'voice_answer', peerId: myPeerId, target: remotePeerId, answer: answer }));
+                        postSync({ kind: 'voice_signal', data: { type: 'voice_answer', peerId: myPeerId, target: remotePeerId, answer: answer } });
                     } else if (data.type === 'voice_answer' && peers[remotePeerId]) {
                         await peers[remotePeerId].setRemoteDescription(new RTCSessionDescription(data.answer));
                     } else if (data.type === 'voice_ice' && peers[remotePeerId]) {
@@ -643,10 +635,7 @@
                         if (audio) audio.remove();
                         updateVoiceStatus();
                     }
-                } catch (err) {
-                    makingOffer[remotePeerId] = false;
-                    console.error('WebRTC error:', err);
-                }
+                } catch (err) { makingOffer[remotePeerId] = false; }
             }
         });
     </script>
