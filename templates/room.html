@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Zetroom | {{ room.name }}</title>
     <link href="https://googleapis.com" rel="stylesheet">
+    <script src="https://jsdelivr.net"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; border-radius: 0 !important; }
 
@@ -179,7 +180,7 @@
 
         <div class="main-grid">
             <div class="video-section">
-                <div class="video-frame" id="player-container" data-video-url="{{ room.video_url|default:'' }}">
+                <div class="video-frame" id="player-container" data-video-url="{{ room.video_url|default:'' }}" data-direct-url="{{ direct_stream_url|default:'' }}">
                     {% if not room.video_url %}
                         <h2 style="font-family: 'Oswald', sans-serif; color: #f8c8d4; letter-spacing: 1px;">ССЫЛКА НА ВИДЕО НЕ ДОБАВЛЕНА</h2>
                     {% endif %}
@@ -271,6 +272,8 @@
 
             const playerContainer = document.getElementById('player-container');
             const rawUrl = playerContainer ? playerContainer.getAttribute('data-video-url').trim() : '';
+            const directUrl = playerContainer ? playerContainer.getAttribute('data-direct-url').trim() : '';
+            const statusTextEl = document.getElementById('sync-status-text');
 
             let videoElement = null;
             let iframeElement = null;
@@ -281,53 +284,63 @@
 
             function triggerLocalSyncGuard() {
                 isRemoteSync = true;
-                setTimeout(() => { isRemoteSync = false; }, 2000);
+                setTimeout(() => { isRemoteSync = false; }, 1200);
             }
 
-            if (playerContainer && rawUrl) {
-                let embedUrl = null;
-                const slash = String.fromCharCode(47);
-
-                if (rawUrl.includes('vk.com') || rawUrl.includes('vkvideo.ru')) {
-                    const cleanVk = rawUrl.split('video').pop().split('?').at(0);
-                    const parts = cleanVk.split('_');
-                    if (parts.length >= 2) {
-                        embedUrl = "https:" + slash + slash + "vk.com" + slash + "video_ext.php?oid=" + parts.at(0) + "&id=" + parts.at(1) + "&hd=2&js_api=1";
-                        playerPlatform = 'vk';
-                    }
-                } else if (rawUrl.includes('rutube.ru')) {
-                    const rtParts = rawUrl.replace(/\/$/, '').split(slash);
-                    const rtId = rtParts.pop().split('?').at(0);
-                    if (rtId) {
-                        embedUrl = "https:" + slash + slash + "rutube.ru" + slash + "play" + slash + "embed" + slash + rtId;
-                        playerPlatform = 'rutube';
-                    }
-                } else if (rawUrl.includes('youtube.com') || rawUrl.includes('youtu.be')) {
-                    let ytId = '';
-                    if (rawUrl.includes('youtu.be' + slash)) {
-                        ytId = rawUrl.split('youtu.be' + slash).pop().split('?').at(0);
-                    } else if (rawUrl.includes('v=')) {
-                        ytId = rawUrl.split('v=').pop().split('&').at(0);
-                    } else if (rawUrl.includes('shorts' + slash)) {
-                        ytId = rawUrl.split('shorts' + slash).pop().split('?').at(0);
-                    }
-                    if (ytId) {
-                        embedUrl = "https:" + slash + slash + "://youtube.com" + slash + "embed" + slash + ytId + "?enablejsapi=1";
-                        playerPlatform = 'youtube';
-                    }
-                }
-
-                if (embedUrl) {
-                    playerContainer.innerHTML = `<iframe id="sync-iframe" src="${embedUrl}" referrerpolicy="strict-origin-when-cross-origin" allow="autoplay; encrypted-media; fullscreen; picture-in-picture" allowfullscreen></iframe>`;
-                    iframeElement = document.getElementById('sync-iframe');
-                } else {
-                    playerContainer.innerHTML = `
-                        <video id="video-player" controls>
-                            <source src="${rawUrl}" type="video/mp4">
-                            Ваш браузер не поддерживает видео.
-                        </video>
-                    `;
+            if (playerContainer && (directUrl || rawUrl)) {
+                if (directUrl) {
+                    playerContainer.innerHTML = `<video id="video-player" controls playsinline></video>`;
                     videoElement = document.getElementById('video-player');
+                    playerPlatform = 'direct';
+                    if (statusTextEl) statusTextEl.textContent = 'Zetroom Direct Stream (Rave Mode) • Мгновенная синхронизация';
+
+                    if (directUrl.includes('.m3u8') && typeof Hls !== 'undefined' && Hls.isSupported()) {
+                        const hls = new Hls();
+                        hls.loadSource(directUrl);
+                        hls.attachMedia(videoElement);
+                    } else {
+                        videoElement.src = directUrl;
+                    }
+                } else {
+                    let embedUrl = null;
+                    const slash = String.fromCharCode(47);
+
+                    if (rawUrl.includes('vk.com') || rawUrl.includes('vkvideo.ru')) {
+                        const cleanVk = rawUrl.split('video').pop().split('?').at(0);
+                        const parts = cleanVk.split('_');
+                        if (parts.length >= 2) {
+                            embedUrl = "https:" + slash + slash + "vk.com" + slash + "video_ext.php?oid=" + parts.at(0) + "&id=" + parts.at(1) + "&hd=2&js_api=1";
+                            playerPlatform = 'vk';
+                        }
+                    } else if (rawUrl.includes('rutube.ru')) {
+                        const rtParts = rawUrl.replace(/\/$/, '').split(slash);
+                        const rtId = rtParts.pop().split('?').at(0);
+                        if (rtId) {
+                            embedUrl = "https:" + slash + slash + "rutube.ru" + slash + "play" + slash + "embed" + slash + rtId;
+                            playerPlatform = 'rutube';
+                        }
+                    } else if (rawUrl.includes('youtube.com') || rawUrl.includes('youtu.be')) {
+                        let ytId = '';
+                        if (rawUrl.includes('youtu.be' + slash)) {
+                            ytId = rawUrl.split('youtu.be' + slash).pop().split('?').at(0);
+                        } else if (rawUrl.includes('v=')) {
+                            ytId = rawUrl.split('v=').pop().split('&').at(0);
+                        } else if (rawUrl.includes('shorts' + slash)) {
+                            ytId = rawUrl.split('shorts' + slash).pop().split('?').at(0);
+                        }
+                        if (ytId) {
+                            embedUrl = "https:" + slash + slash + "://youtube.com" + slash + "embed" + slash + ytId + "?enablejsapi=1";
+                            playerPlatform = 'youtube';
+                        }
+                    }
+
+                    if (embedUrl) {
+                        playerContainer.innerHTML = `<iframe id="sync-iframe" src="${embedUrl}" referrerpolicy="strict-origin-when-cross-origin" allow="autoplay; encrypted-media; fullscreen; picture-in-picture" allowfullscreen></iframe>`;
+                        iframeElement = document.getElementById('sync-iframe');
+                    } else {
+                        playerContainer.innerHTML = `<video id="video-player" controls src="${rawUrl}"></video>`;
+                        videoElement = document.getElementById('video-player');
+                    }
                 }
             }
 
@@ -347,7 +360,6 @@
                     time: time
                 }));
             }
-
             window.addEventListener('message', (event) => {
                 if (!iframeElement) return;
                 let msg = event.data;
@@ -359,49 +371,29 @@
                 if (playerPlatform === 'rutube') {
                     if (msg.type === 'player:currentTime' && msg.data) {
                         const newTime = msg.data.time;
-                        if (!isRemoteSync && Math.abs(newTime - lastKnownTime) > 2.5) {
-                            sendSyncAction('seek', newTime);
-                        }
+                        if (!isRemoteSync && Math.abs(newTime - lastKnownTime) > 2.5) sendSyncAction('seek', newTime);
                         lastKnownTime = newTime;
                     } else if (msg.type === 'player:changeState' && msg.data) {
                         const st = String(msg.data.state || '').toLowerCase();
-                        if (st === 'playing' || st === 'play') {
-                            isPlayerPlaying = true;
-                            sendSyncAction('play', lastKnownTime);
-                        } else if (st === 'paused' || st === 'pause' || st === 'stopped') {
-                            isPlayerPlaying = false;
-                            sendSyncAction('pause', lastKnownTime);
-                        }
-                    } else if (msg.type === 'player:pause') {
-                        isPlayerPlaying = false;
-                        sendSyncAction('pause', lastKnownTime);
-                    } else if (msg.type === 'player:play') {
-                        isPlayerPlaying = true;
-                        sendSyncAction('play', lastKnownTime);
+                        if (st === 'playing' || st === 'play') { isPlayerPlaying = true; sendSyncAction('play', lastKnownTime); }
+                        else if (st === 'paused' || st === 'pause' || st === 'stopped') { isPlayerPlaying = false; sendSyncAction('pause', lastKnownTime); }
                     }
                 }
-
                 if (playerPlatform === 'vk') {
                     if (msg.event === 'timeupdate' && typeof msg.time === 'number') {
-                        if (!isRemoteSync && Math.abs(msg.time - lastKnownTime) > 2.5) {
-                            sendSyncAction('seek', msg.time);
-                        }
+                        if (!isRemoteSync && Math.abs(msg.time - lastKnownTime) > 2.5) sendSyncAction('seek', msg.time);
                         lastKnownTime = msg.time;
-                    } else if (msg.event === 'play') {
-                        isPlayerPlaying = true;
-                        sendSyncAction('play', lastKnownTime);
-                    } else if (msg.event === 'pause') {
-                        isPlayerPlaying = false;
-                        sendSyncAction('pause', lastKnownTime);
-                    }
+                    } else if (msg.event === 'play') { isPlayerPlaying = true; sendSyncAction('play', lastKnownTime); }
+                    else if (msg.event === 'pause') { isPlayerPlaying = false; sendSyncAction('pause', lastKnownTime); }
                 }
             });
+
             function applyIncomingSync(data) {
                 if (data.senderId === myPeerId) return;
                 triggerLocalSyncGuard();
 
                 if (videoElement) {
-                    if (typeof data.time === 'number' && Math.abs(videoElement.currentTime - data.time) > 2.0) {
+                    if (typeof data.time === 'number' && Math.abs(videoElement.currentTime - data.time) > 1.0) {
                         videoElement.currentTime = data.time;
                     }
                     if (data.action === 'play' && videoElement.paused) videoElement.play().catch(() => {});
@@ -427,18 +419,11 @@
                             iframeElement.contentWindow.postMessage(JSON.stringify({ method: 'seek', time: data.time }), '*');
                             lastKnownTime = data.time;
                         }
-                        if (data.action === 'play' && !isPlayerPlaying) {
-                            iframeElement.contentWindow.postMessage(JSON.stringify({ method: 'play' }), '*');
-                            isPlayerPlaying = true;
-                        }
-                        if (data.action === 'pause' && isPlayerPlaying) {
-                            iframeElement.contentWindow.postMessage(JSON.stringify({ method: 'pause' }), '*');
-                            isPlayerPlaying = false;
-                        }
+                        if (data.action === 'play') iframeElement.contentWindow.postMessage(JSON.stringify({ method: 'play' }), '*');
+                        if (data.action === 'pause') iframeElement.contentWindow.postMessage(JSON.stringify({ method: 'pause' }), '*');
                     } else if (playerPlatform === 'youtube') {
-                        if (typeof data.time === 'number' && Math.abs(lastKnownTime - data.time) > 2.0) {
+                        if (typeof data.time === 'number') {
                             iframeElement.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'seekTo', args: [data.time, true] }), '*');
-                            lastKnownTime = data.time;
                         }
                         if (data.action === 'play') iframeElement.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), '*');
                         if (data.action === 'pause') iframeElement.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'pauseVideo', args: [] }), '*');
@@ -455,13 +440,8 @@
             if (isHost) {
                 setInterval(() => {
                     if (!isSocketOpen) return;
-                    let currentTime = lastKnownTime;
-                    let playing = isPlayerPlaying;
-
-                    if (videoElement) {
-                        currentTime = videoElement.currentTime;
-                        playing = !videoElement.paused;
-                    }
+                    let currentTime = videoElement ? videoElement.currentTime : lastKnownTime;
+                    let playing = videoElement ? !videoElement.paused : isPlayerPlaying;
 
                     if (playing && currentTime > 0) {
                         chatSocket.send(JSON.stringify({
@@ -471,7 +451,7 @@
                             time: currentTime
                         }));
                     }
-                }, 4000);
+                }, 3000);
             }
 
             chatSocket.onmessage = (e) => {
@@ -505,7 +485,6 @@
                     handleVoiceSignal(data);
                 }
             };
-
             const chatForm = document.getElementById('chat-form');
             const chatInput = document.getElementById('chat-input');
 
@@ -520,7 +499,8 @@
                     }
                 });
             }
-            // --- ГОЛОСОВОЙ ЧАТ (Polite Peer WebRTC) ---
+
+            // --- ГОЛОСОВОЙ ЧАТ (WebRTC + TURN) ---
             let localStream = null;
             let isVoiceActive = false;
             let isMuted = false;
@@ -530,7 +510,10 @@
             const rtcConfig = {
                 iceServers: [
                     { urls: 'stun:://google.com' },
-                    { urls: 'stun:://google.com' }
+                    { urls: 'stun:://google.com' },
+                    { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
+                    { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
+                    { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' }
                 ]
             };
 
@@ -586,36 +569,21 @@
 
             function leaveVoice() {
                 isVoiceActive = false;
-                if (voicePingInterval) {
-                    clearInterval(voicePingInterval);
-                    voicePingInterval = null;
-                }
-                if (localStream) {
-                    localStream.getTracks().forEach(track => track.stop());
-                    localStream = null;
-                }
-                Object.keys(peers).forEach(id => {
-                    peers[id].close();
-                    delete peers[id];
-                });
+                if (voicePingInterval) { clearInterval(voicePingInterval); voicePingInterval = null; }
+                if (localStream) { localStream.getTracks().forEach(track => track.stop()); localStream = null; }
+                Object.keys(peers).forEach(id => { peers[id].close(); delete peers[id]; });
                 remoteAudios.innerHTML = '';
                 btnVoiceToggle.textContent = '🎙 Войти в голос';
                 btnVoiceToggle.style.background = '#1e161a';
                 btnMuteToggle.style.display = 'none';
                 updateVoiceStatus();
-                if (isSocketOpen) {
-                    chatSocket.send(JSON.stringify({ type: 'voice_leave', peerId: myPeerId }));
-                }
+                if (isSocketOpen) chatSocket.send(JSON.stringify({ type: 'voice_leave', peerId: myPeerId }));
             }
 
-            window.addEventListener('beforeunload', () => {
-                if (isVoiceActive) leaveVoice();
-            });
+            window.addEventListener('beforeunload', () => { if (isVoiceActive) leaveVoice(); });
 
             function createPeerConnection(remotePeerId) {
-                if (peers[remotePeerId]) {
-                    peers[remotePeerId].close();
-                }
+                if (peers[remotePeerId]) peers[remotePeerId].close();
                 const pc = new RTCPeerConnection(rtcConfig);
                 peers[remotePeerId] = pc;
 
@@ -673,12 +641,7 @@
                         const offer = await pc.createOffer();
                         await pc.setLocalDescription(offer);
                         makingOffer[remotePeerId] = false;
-                        chatSocket.send(JSON.stringify({
-                            type: 'voice_offer',
-                            peerId: myPeerId,
-                            target: remotePeerId,
-                            offer: offer
-                        }));
+                        chatSocket.send(JSON.stringify({ type: 'voice_offer', peerId: myPeerId, target: remotePeerId, offer: offer }));
                     } else if (data.type === 'voice_offer') {
                         const isPolite = myPeerId < remotePeerId;
                         const offerCollision = makingOffer[remotePeerId] || (peers[remotePeerId] && peers[remotePeerId].signalingState !== 'stable');
@@ -688,21 +651,13 @@
                         await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
                         const answer = await pc.createAnswer();
                         await pc.setLocalDescription(answer);
-                        chatSocket.send(JSON.stringify({
-                            type: 'voice_answer',
-                            peerId: myPeerId,
-                            target: remotePeerId,
-                            answer: answer
-                        }));
+                        chatSocket.send(JSON.stringify({ type: 'voice_answer', peerId: myPeerId, target: remotePeerId, answer: answer }));
                     } else if (data.type === 'voice_answer' && peers[remotePeerId]) {
                         await peers[remotePeerId].setRemoteDescription(new RTCSessionDescription(data.answer));
                     } else if (data.type === 'voice_ice' && peers[remotePeerId]) {
                         await peers[remotePeerId].addIceCandidate(new RTCIceCandidate(data.candidate));
                     } else if (data.type === 'voice_leave') {
-                        if (peers[remotePeerId]) {
-                            peers[remotePeerId].close();
-                            delete peers[remotePeerId];
-                        }
+                        if (peers[remotePeerId]) { peers[remotePeerId].close(); delete peers[remotePeerId]; }
                         const audio = document.getElementById(`audio-${remotePeerId}`);
                         if (audio) audio.remove();
                         updateVoiceStatus();
