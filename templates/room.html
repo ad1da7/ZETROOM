@@ -481,10 +481,11 @@
                     ).join('');
 
                     const vUsers = Object.entries(data.voice_state || {});
-                    voiceStatusText.textContent = vUsers.length ? 'В голосе: ' + vUsers.map(([_, u]) => u.username + (u.muted ? ' [MUTE]' : '')).join(', ') : 'Голосовой чат пуст';
+                    voiceStatusText.textContent = vUsers.length
+                        ? 'В голосе: ' + vUsers.map(entry => entry.at(1).username + (entry.at(1).muted ? ' [MUTE]' : '')).join(', ')
+                        : 'Голосовой чат пуст';
 
                     if (isVoiceActive) {
-                                            if (isVoiceActive) {
                         vUsers.forEach(entry => {
                             const uid = entry.at(0);
                             if (uid !== myUserId && !peers[uid]) {
@@ -528,3 +529,4 @@
     </script>
 </body>
 </html>
+>
