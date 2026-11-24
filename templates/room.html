@@ -235,7 +235,10 @@
                 </div>
                 <div class="chat-box" id="chat-box">
                     {% for msg in messages %}
-                        <div class="message-item"><span class="message-author">{{ msg.user }}:</span> {{ msg.text }}</div>
+                        <!-- ВАЖНО: добавили data-id, чтобы пофиксить дублирование -->
+                        <div class="message-item" data-id="{{ msg.id }}">
+                            <span class="message-author">{{ msg.user }}:</span> {{ msg.text }}
+                        </div>
                     {% empty %}
                         <p id="empty-chat-msg" style="color: #8c6674; text-align: center; margin-top: 30px; font-size: 0.9rem;">В чате пока тихо...</p>
                     {% endfor %}
@@ -289,8 +292,9 @@
             let viewerConnected = isHost;
             let lastKnownTime = 0, isPlayerPlaying = false;
             let latestHostState = { is_playing: false, current_time: 0 };
+            let isRutubeReady = false; // Флаг готовности плеера Rutube
 
-            // --- ИСПРАВЛЕННЫЙ ПЛЕЕР (VK + RUTUBE) ---
+            // --- ИСПРАВЛЕННЫЙ ПЛЕЕР (RUTUBE + VK) ---
             function detectAndBuildIframe(url) {
                 if (url.includes('rutube.ru/video/')) {
                     playerPlatform = 'rutube';
@@ -300,7 +304,6 @@
                 if (url.includes('vk.com') || url.includes('vkvideo.ru/video')) {
                     playerPlatform = 'vk';
                     const m = url.match(/video(-?\d+)_(\d+)/);
-                    // Добавляем js_api=1 чтобы ВК отправлял события наружу
                     return m ? 'https://vk.com/video_ext.php?oid=' + m[1] + '&id=' + m[2] + '&hd=2&js_api=1' : url;
                 }
                 if (url.includes('youtube.com') || url.includes('youtu.be')) {
@@ -313,15 +316,17 @@
 
             function sendIframeCommand(cmd, timeVal) {
                 if (!iframeEl || !iframeEl.contentWindow) return;
+
+                // Если это Rutube, проверяем, загрузился ли он
                 if (playerPlatform === 'rutube') {
+                    if (!isRutubeReady) return;
                     if (typeof timeVal === 'number') iframeEl.contentWindow.postMessage(JSON.stringify({ type: 'player:setCurrentTime', data: { time: timeVal } }), '*');
                     if (cmd === 'play') iframeEl.contentWindow.postMessage(JSON.stringify({ type: 'player:play', data: {} }), '*');
                     if (cmd === 'pause') iframeEl.contentWindow.postMessage(JSON.stringify({ type: 'player:pause', data: {} }), '*');
                 } else if (playerPlatform === 'vk') {
-                    // ВК требует другой формат API-команд через postMessage
-                    if (cmd === 'play') iframeEl.contentWindow.postMessage(JSON.stringify({ method: 'play', params: [] }), '*');
-                    if (cmd === 'pause') iframeEl.contentWindow.postMessage(JSON.stringify({ method: 'pause', params: [] }), '*');
-                    if (typeof timeVal === 'number') iframeEl.contentWindow.postMessage(JSON.stringify({ method: 'seek', params: [timeVal] }), '*');
+                    if (typeof timeVal === 'number') iframeEl.contentWindow.postMessage(JSON.stringify({ method: 'seek', time: timeVal }), '*');
+                    if (cmd === 'play') iframeEl.contentWindow.postMessage(JSON.stringify({ method: 'play' }), '*');
+                    if (cmd === 'pause') iframeEl.contentWindow.postMessage(JSON.stringify({ method: 'pause' }), '*');
                 }
             }
 
@@ -359,7 +364,7 @@
                 });
             }
 
-            // Обработка событий от ВК и Рутуба
+            // --- ОБРАБОТКА СОБЫТИЙ ОТ RUTUBE ---
             window.addEventListener('message', (event) => {
                 if (!iframeEl) return;
                 let msg = event.data;
@@ -367,14 +372,30 @@
                 if (!msg || typeof msg !== 'object') return;
 
                 if (playerPlatform === 'rutube') {
-                    if (msg.type === 'player:currentTime' && msg.data) lastKnownTime = msg.data.time;
-                    else if (msg.type === 'player:changeState' && msg.data) {
+                    // Плеер готов
+                    if (msg.type === 'player:ready') {
+                        isRutubeReady = true;
+                        if (!isHost && viewerConnected) {
+                            sendIframeCommand(latestHostState.is_playing ? 'play' : 'pause', latestHostState.current_time);
+                        }
+                    }
+                    // Получаем текущее время
+                    if (msg.type === 'player:currentTime' && msg.data) {
+                        lastKnownTime = msg.data.time;
+                    }
+                    // Ловим play/pause
+                    if (msg.type === 'player:changeState' && msg.data) {
                         const st = String(msg.data.state || '').toLowerCase();
-                        if (st === 'playing' || st === 'play') { isPlayerPlaying = true; if (isHost) syncTick(); }
-                        else if (st === 'paused' || st === 'pause' || st === 'stopped') { isPlayerPlaying = false; if (isHost) syncTick(); }
+                        if (st === 'playing' || st === 'play') {
+                            isPlayerPlaying = true;
+                            if (isHost) syncTick();
+                        }
+                        else if (st === 'paused' || st === 'pause' || st === 'stopped') {
+                            isPlayerPlaying = false;
+                            if (isHost) syncTick();
+                        }
                     }
                 } else if (playerPlatform === 'vk') {
-                    // ВК отдает события в формате { event: '...', ... }
                     if (msg.event === 'timeupdate' && typeof msg.time === 'number') lastKnownTime = msg.time;
                     else if (msg.event === 'play') { isPlayerPlaying = true; if (isHost) syncTick(); }
                     else if (msg.event === 'pause') { isPlayerPlaying = false; if (isHost) syncTick(); }
@@ -409,6 +430,11 @@
                 const pc = new RTCPeerConnection(rtcConfig);
                 peers[remoteId] = pc;
                 if (localStream) localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
+
+                pc.oniceconnectionstatechange = () => {
+                    console.log(`[WebRTC] ICE state for ${remoteId}:`, pc.iceConnectionState);
+                };
+
                 pc.onicecandidate = e => { if (e.candidate) outgoingSignals.push({ to: remoteId, type: 'ice', data: e.candidate }); };
                 pc.ontrack = e => {
                     let a = document.getElementById('audio-' + remoteId);
@@ -453,9 +479,8 @@
             let lastMsgId = 0, pendingChatMsg = '';
             const chatBox = document.getElementById('chat-box');
 
-            // Берем максимальный ID из уже отрисованных сообщений, чтобы не дублировать их при первом запросе
+            // Фикс дублей: берем максимальный ID из data-id, который мы добавили в шаблон
             document.querySelectorAll('#chat-box .message-item').forEach(el => {
-                // Если в сообщении нет data-id, мы не сможем точно определить, но это лучше, чем 0
                 const msgId = parseInt(el.dataset.id || '0');
                 if (msgId > lastMsgId) lastMsgId = msgId;
             });
@@ -485,14 +510,17 @@
                     if (data.status === 'banned') { alert('Создатель комнаты исключил вас.'); window.location.href = '/'; return; }
 
                     latestHostState = data.video || latestHostState;
-                    if (!isHost && viewerConnected && data.video) {
-                        if (videoEl) {
-                            if (Math.abs((videoEl.currentTime || 0) - data.video.current_time) > 2.2) videoEl.currentTime = data.video.current_time;
-                            if (data.video.is_playing && videoEl.paused) videoEl.play().catch(() => {});
-                            if (!data.video.is_playing && !videoEl.paused) videoEl.pause();
-                        } else if (iframeEl) {
-                            const needSeek = Math.abs((lastKnownTime || 0) - data.video.current_time) > 3.5 ? data.video.current_time : null;
-                            sendIframeCommand(data.video.is_playing ? 'play' : 'pause', needSeek);
+
+                    // Синхронизация Rutube для зрителя
+                    if (!isHost && viewerConnected && data.video && iframeEl && playerPlatform === 'rutube') {
+                        const timeDiff = Math.abs((lastKnownTime || 0) - data.video.current_time);
+                        const stateDiff = (data.video.is_playing !== isPlayerPlaying);
+
+                        if (timeDiff > 2.0) {
+                            sendIframeCommand(null, data.video.current_time);
+                        }
+                        if (stateDiff) {
+                            sendIframeCommand(data.video.is_playing ? 'play' : 'pause', null);
                         }
                     }
 
@@ -534,12 +562,16 @@
                         lastMsgId = Math.max(lastMsgId, m.id);
                         const empty = document.getElementById('empty-chat-msg');
                         if (empty) empty.remove();
-                        const div = document.createElement('div');
-                        div.className = 'message-item';
-                        div.dataset.id = m.id; // Сохраняем ID в DOM
-                        div.innerHTML = `<span class="message-author">${m.user}:</span> ${m.text}`;
-                        chatBox.appendChild(div);
-                        chatBox.scrollTop = chatBox.scrollHeight;
+
+                        // Проверка на дубликат перед добавлением
+                        if (!document.querySelector(`.message-item[data-id="${m.id}"]`)) {
+                            const div = document.createElement('div');
+                            div.className = 'message-item';
+                            div.dataset.id = m.id;
+                            div.innerHTML = `<span class="message-author">${m.user}:</span> ${m.text}`;
+                            chatBox.appendChild(div);
+                            chatBox.scrollTop = chatBox.scrollHeight;
+                        }
                     });
                 } catch (e) { console.error("Sync error", e); }
             }
