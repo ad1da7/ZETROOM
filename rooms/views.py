@@ -18,7 +18,6 @@ except ImportError:
 
 
 def extract_direct_stream(video_url):
-    # Оставляем твою логику
     if not video_url:
         return ''
     lower_url = video_url.lower()
@@ -45,7 +44,6 @@ def extract_direct_stream(video_url):
 
 
 def fetch_video_thumbnail(video_url):
-    # Оставляем твою логику
     if not video_url:
         return ''
     try:
@@ -230,7 +228,7 @@ def room_sync_api(request, room_uuid):
         if chat_text:
             Message.objects.create(room=room, user=request.user.username, text=chat_text[:1000])
 
-        # Голосовое состояние (кто в голосе, кто замьючен)
+        # Голосовое состояние
         vs = {k: v for k, v in (room.voice_state or {}).items() if now_ts - v.get('updated_at', 0) < 12}
         v_act = payload.get('voice_action')
         if v_act == 'join':
@@ -244,7 +242,7 @@ def room_sync_api(request, room_uuid):
                 vs[uid_str]['muted'] = bool(payload['muted'])
         room.voice_state = vs
 
-        # WebRTC Сигналы (SDP / ICE)
+        # WebRTC Сигналы
         sigs = [s for s in (room.webrtc_signals or []) if now_ts - s.get('ts', 0) < 15]
         for s in (payload.get('signals') or []):
             sigs.append(
@@ -255,6 +253,9 @@ def room_sync_api(request, room_uuid):
 
         last_id = int(request.GET.get('last_msg_id') or payload.get('last_msg_id') or 0)
         msgs = [{'id': m.id, 'user': m.user, 'text': m.text} for m in room.messages.filter(id__gt=last_id)[:50]]
+
+        new_last_id = msgs[-1]['id'] if msgs else last_id
+
         parts = [{'id': p.user_id, 'username': p.user.username, 'is_host': p.user_id == room.host_id} for p in
                  room.participants.select_related('user').all() if p.user]
 
@@ -266,4 +267,5 @@ def room_sync_api(request, room_uuid):
             'voice_state': vs,
             'signals': my_sigs,
             'messages': msgs,
+            'last_msg_id': new_last_id,
         })

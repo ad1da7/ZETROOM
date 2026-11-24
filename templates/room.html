@@ -235,7 +235,6 @@
                 </div>
                 <div class="chat-box" id="chat-box">
                     {% for msg in messages %}
-                        <!-- ВАЖНО: добавили data-id, чтобы пофиксить дублирование -->
                         <div class="message-item" data-id="{{ msg.id }}">
                             <span class="message-author">{{ msg.user }}:</span> {{ msg.text }}
                         </div>
@@ -244,10 +243,10 @@
                     {% endfor %}
                 </div>
 
-                <form class="chat-form" id="chat-form" method="POST">
+                <form class="chat-form" id="chat-form">
                     {% csrf_token %}
                     <input type="text" id="chat-input" name="message_text" placeholder="Написать сообщение..." autocomplete="off" required>
-                    <button type="submit">
+                    <button type="submit" id="chat-submit-btn">
                         <svg class="icon-svg" viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
                     </button>
                 </form>
@@ -256,16 +255,8 @@
     </div>
 
     {{ room.uuid|json_script:"room-uuid" }}
-    {% if user.is_authenticated %}
-        {{ user.id|json_script:"current-user-id" }}
-    {% else %}
-        {{ 0|json_script:"current-user-id" }}
-    {% endif %}
-    {% if user == room.host %}
-        {{ True|json_script:"is-host" }}
-    {% else %}
-        {{ False|json_script:"is-host" }}
-    {% endif %}
+    {% if user.is_authenticated %}{{ user.id|json_script:"current-user-id" }}{% else %}{{ 0|json_script:"current-user-id" }}{% endif %}
+    {% if user == room.host %}{{ True|json_script:"is-host" }}{% else %}{{ False|json_script:"is-host" }}{% endif %}
 
     <script>
         function copyRoomId() {
@@ -292,9 +283,8 @@
             let viewerConnected = isHost;
             let lastKnownTime = 0, isPlayerPlaying = false;
             let latestHostState = { is_playing: false, current_time: 0 };
-            let isRutubeReady = false; // Флаг готовности плеера Rutube
+            let isRutubeReady = false;
 
-            // --- ИСПРАВЛЕННЫЙ ПЛЕЕР (RUTUBE + VK) ---
             function detectAndBuildIframe(url) {
                 if (url.includes('rutube.ru/video/')) {
                     playerPlatform = 'rutube';
@@ -316,8 +306,6 @@
 
             function sendIframeCommand(cmd, timeVal) {
                 if (!iframeEl || !iframeEl.contentWindow) return;
-
-                // Если это Rutube, проверяем, загрузился ли он
                 if (playerPlatform === 'rutube') {
                     if (!isRutubeReady) return;
                     if (typeof timeVal === 'number') iframeEl.contentWindow.postMessage(JSON.stringify({ type: 'player:setCurrentTime', data: { time: timeVal } }), '*');
@@ -364,7 +352,6 @@
                 });
             }
 
-            // --- ОБРАБОТКА СОБЫТИЙ ОТ RUTUBE ---
             window.addEventListener('message', (event) => {
                 if (!iframeEl) return;
                 let msg = event.data;
@@ -372,18 +359,15 @@
                 if (!msg || typeof msg !== 'object') return;
 
                 if (playerPlatform === 'rutube') {
-                    // Плеер готов
                     if (msg.type === 'player:ready') {
                         isRutubeReady = true;
                         if (!isHost && viewerConnected) {
                             sendIframeCommand(latestHostState.is_playing ? 'play' : 'pause', latestHostState.current_time);
                         }
                     }
-                    // Получаем текущее время
                     if (msg.type === 'player:currentTime' && msg.data) {
                         lastKnownTime = msg.data.time;
                     }
-                    // Ловим play/pause
                     if (msg.type === 'player:changeState' && msg.data) {
                         const st = String(msg.data.state || '').toLowerCase();
                         if (st === 'playing' || st === 'play') {
@@ -404,7 +388,6 @@
 
             window.addEventListener('beforeunload', () => navigator.sendBeacon(leaveUrl, new Blob(['{}'], { type: 'application/json' })));
 
-            // --- ГОЛОСОВОЙ ЧАТ ---
             let localStream = null, isVoiceActive = false, isMuted = false, pendingVoiceAction = null;
             const peers = {}, outgoingSignals = [];
 
@@ -475,21 +458,29 @@
                 syncTick();
             });
 
-            // --- ЧАТ И СИНХРОНИЗАЦИЯ ---
-            let lastMsgId = 0, pendingChatMsg = '';
+            let lastMsgId = 0, pendingChatMsg = '', isSendingMsg = false;
             const chatBox = document.getElementById('chat-box');
 
-            // Фикс дублей: берем максимальный ID из data-id, который мы добавили в шаблон
             document.querySelectorAll('#chat-box .message-item').forEach(el => {
                 const msgId = parseInt(el.dataset.id || '0');
                 if (msgId > lastMsgId) lastMsgId = msgId;
             });
 
-            document.getElementById('chat-form').addEventListener('submit', e => {
+            document.getElementById('chat-form').addEventListener('submit', async (e) => {
                 e.preventDefault();
+                if (isSendingMsg) return;
                 const inp = document.getElementById('chat-input');
-                if (!inp.value.trim()) return;
-                pendingChatMsg = inp.value.trim(); inp.value = ''; syncTick();
+                const text = inp.value.trim();
+                if (!text) return;
+
+                isSendingMsg = true;
+                inp.value = '';
+                pendingChatMsg = text;
+
+                await syncTick();
+
+                pendingChatMsg = '';
+                isSendingMsg = false;
             });
 
             async function syncTick() {
@@ -511,7 +502,6 @@
 
                     latestHostState = data.video || latestHostState;
 
-                    // Синхронизация Rutube для зрителя
                     if (!isHost && viewerConnected && data.video && iframeEl && playerPlatform === 'rutube') {
                         const timeDiff = Math.abs((lastKnownTime || 0) - data.video.current_time);
                         const stateDiff = (data.video.is_playing !== isPlayerPlaying);
@@ -558,12 +548,15 @@
                         }
                     }
 
+                    if (data.last_msg_id) {
+                        lastMsgId = data.last_msg_id;
+                    }
+
                     (data.messages || []).forEach(m => {
                         lastMsgId = Math.max(lastMsgId, m.id);
                         const empty = document.getElementById('empty-chat-msg');
                         if (empty) empty.remove();
 
-                        // Проверка на дубликат перед добавлением
                         if (!document.querySelector(`.message-item[data-id="${m.id}"]`)) {
                             const div = document.createElement('div');
                             div.className = 'message-item';
