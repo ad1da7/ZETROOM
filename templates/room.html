@@ -155,7 +155,7 @@
     <nav class="navbar">
         <a href="{% url 'index' %}" class="brand-logo"><img src="{% static 'images/logo.png' %}" alt="Zetroom"></a>
         <div class="nav-right">
-            <div class="sync-badge"><span class="sync-dot"></span> Zetroom SYNC</div>
+            <div class="sync-badge"><span class="sync-dot" id="ws-status-dot"></span> Zetroom SYNC</div>
             <a href="{% url 'index' %}" class="btn-leave">← Выйти из комнаты</a>
         </div>
     </nav>
@@ -246,6 +246,7 @@
         {{ "Гость"|json_script:"current-username" }}
         {{ 0|json_script:"current-user-id" }}
     {% endif %}
+
     <script>
         function copyRoomId() {
             const idText = document.getElementById('room-id-val').textContent.trim();
@@ -264,87 +265,75 @@
             const myPeerId = currentUsername + '_' + Math.random().toString(36).substring(2, 8);
 
             const playerContainer = document.getElementById('player-container');
+            const syncStatusText = document.getElementById('sync-status-text');
+            const wsDot = document.getElementById('ws-status-dot');
             const rawUrl = playerContainer ? playerContainer.getAttribute('data-video-url').trim() : '';
+
+            const wsScheme = window.location.protocol === "https:" ? "wss" : "ws";
+            const chatSocket = new WebSocket(`${wsScheme}://${window.location.host}/ws/room/${roomUuid}/`);
+            let isSocketOpen = false;
+
+            chatSocket.onopen = () => {
+                isSocketOpen = true;
+                if (wsDot) wsDot.style.background = '#10b981';
+                chatSocket.send(JSON.stringify({ type: 'video_sync', action: 'request_state', senderId: myPeerId }));
+            };
+
+            chatSocket.onclose = () => {
+                isSocketOpen = false;
+                if (wsDot) wsDot.style.background = '#ef4444';
+            };
+
+            function sendSyncAction(action, time) {
+                if (!isSocketOpen) return;
+                chatSocket.send(JSON.stringify({ type: 'video_sync', action: action, time: time, senderId: myPeerId }));
+            }
 
             let videoElement = null;
             let iframeElement = null;
             let playerPlatform = 'mp4';
             let isRemoteSync = false;
             let lastKnownTime = 0;
+            let isPlaying = false;
+            let syncGuardTimer = null;
 
             function triggerLocalSyncGuard() {
                 isRemoteSync = true;
-                setTimeout(() => { isRemoteSync = false; }, 800);
+                if (syncGuardTimer) clearTimeout(syncGuardTimer);
+                syncGuardTimer = setTimeout(() => { isRemoteSync = false; }, 1200);
             }
 
             if (playerContainer && rawUrl) {
                 let embedUrl = null;
-                const slash = String.fromCharCode(47);
-
-                if (rawUrl.includes('vk.com') || rawUrl.includes('vkvideo.ru')) {
-                    const cleanVk = rawUrl.split('video').pop().split('?').at(0);
-                    const parts = cleanVk.split('_');
-                    if (parts.length >= 2) {
-                        embedUrl = "https:" + slash + slash + "vk.com" + slash + "video_ext.php?oid=" + parts.at(0) + "&id=" + parts.at(1) + "&hd=2&js_api=1";
+                const rtMatch = rawUrl.match(/rutube\.ru\/(?:video|play\/embed|shorts)\/([a-zA-Z0-9_-]+)/);
+                if (rtMatch && rtMatch) {
+                    embedUrl = `https://rutube.ru{rtMatch}`;
+                    playerPlatform = 'rutube';
+                }
+                if (!embedUrl && (rawUrl.includes('vk.com') || rawUrl.includes('vkvideo.ru'))) {
+                    const vkMatch = rawUrl.match(/video(-?\d+)_(\d+)/);
+                    if (vkMatch && vkMatch && vkMatch) {
+                        embedUrl = `https://vk.com{vkMatch}&id=${vkMatch}&hd=2&js_api=1`;
                         playerPlatform = 'vk';
                     }
-                } else if (rawUrl.includes('rutube.ru')) {
-                    const rtParts = rawUrl.replace(/\/$/, '').split(slash);
-                    const rtId = rtParts.pop().split('?').at(0);
-                    if (rtId) {
-                        embedUrl = "https:" + slash + slash + "rutube.ru" + slash + "play" + slash + "embed" + slash + rtId;
-                        playerPlatform = 'rutube';
-                    }
-                } else if (rawUrl.includes('youtube.com') || rawUrl.includes('youtu.be')) {
-                    let ytId = '';
-                    if (rawUrl.includes('youtu.be' + slash)) {
-                        ytId = rawUrl.split('youtu.be' + slash).pop().split('?').at(0);
-                    } else if (rawUrl.includes('v=')) {
-                        ytId = rawUrl.split('v=').pop().split('&').at(0);
-                    } else if (rawUrl.includes('shorts' + slash)) {
-                        ytId = rawUrl.split('shorts' + slash).pop().split('?').at(0);
-                    }
-                    if (ytId) {
-                        embedUrl = "https:" + slash + slash + "://youtube.com" + slash + "embed" + slash + ytId + "?enablejsapi=1";
+                }
+                if (!embedUrl && (rawUrl.includes('youtube.com') || rawUrl.includes('youtu.be'))) {
+                    const ytMatch = rawUrl.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+                    if (ytMatch && ytMatch) {
+                        embedUrl = `https://youtube.com{ytMatch}?enablejsapi=1`;
                         playerPlatform = 'youtube';
                     }
                 }
-
                 if (embedUrl) {
                     playerContainer.innerHTML = `<iframe id="sync-iframe" src="${embedUrl}" referrerpolicy="strict-origin-when-cross-origin" allow="autoplay; encrypted-media; fullscreen; picture-in-picture" allowfullscreen></iframe>`;
                     iframeElement = document.getElementById('sync-iframe');
                 } else {
-                    playerContainer.innerHTML = `
-                        <video id="video-player" controls>
-                            <source src="${rawUrl}" type="video/mp4">
-                            Ваш браузер не поддерживает видео.
-                        </video>
-                    `;
+                    playerContainer.innerHTML = `<video id="video-player" controls><source src="${rawUrl}" type="video/mp4">Ваш браузер не поддерживает видео.</video>`;
                     videoElement = document.getElementById('video-player');
                 }
             }
-
-            const chatForm = document.getElementById('chat-form');
-            const chatInput = document.getElementById('chat-input');
-
-            if (chatForm && chatInput) {
-                chatForm.addEventListener('submit', (e) => {
-                    e.preventDefault(); // Отменяем перезагрузку страницы ВСЕГДА
-
-                    const text = chatInput.value.trim();
-                    if (!text) return;
-
-                    if (isSocketOpen) {
-                        chatSocket.send(JSON.stringify({ 'message': text, 'username': currentUsername }));
-                        chatInput.value = '';
-                    } else {
-                        console.error("Чат не подключен к серверу");
-                    }
-                });
-            }
-
             window.addEventListener('message', (event) => {
-                if (!iframeElement || isRemoteSync) return;
+                if (!iframeElement) return;
                 let msg = event.data;
                 if (typeof msg === 'string') {
                     try { msg = JSON.parse(msg); } catch (e) { return; }
@@ -352,42 +341,59 @@
                 if (!msg || typeof msg !== 'object') return;
 
                 if (playerPlatform === 'rutube') {
-                    if (msg.type === 'player:currentTime' && msg.data) {
+                    if (msg.type === 'player:currentTime' && msg.data && typeof msg.data.time === 'number') {
                         const newTime = msg.data.time;
-                        if (Math.abs(newTime - lastKnownTime) > 2.5) {
+                        if (!isRemoteSync && Math.abs(newTime - lastKnownTime) > 2.2) {
                             sendSyncAction('seek', newTime);
+                            if (syncStatusText) syncStatusText.textContent = `Синхронизация: перемотка на ${Math.floor(newTime)} сек.`;
                         }
                         lastKnownTime = newTime;
                     } else if (msg.type === 'player:changeState' && msg.data) {
                         const st = String(msg.data.state || '').toLowerCase();
                         if (st === 'playing' || st === 'play') {
-                            sendSyncAction('play', lastKnownTime);
+                            isPlaying = true;
+                            if (!isRemoteSync) {
+                                sendSyncAction('play', lastKnownTime);
+                                if (syncStatusText) syncStatusText.textContent = 'Синхронизация: воспроизведение';
+                            }
                         } else if (st === 'paused' || st === 'pause' || st === 'stopped') {
-                            sendSyncAction('pause', lastKnownTime);
+                            isPlaying = false;
+                            if (!isRemoteSync) {
+                                sendSyncAction('pause', lastKnownTime);
+                                if (syncStatusText) syncStatusText.textContent = 'Синхронизация: пауза';
+                            }
                         }
-                    } else if (msg.type === 'player:pause') {
-                        sendSyncAction('pause', lastKnownTime);
-                    } else if (msg.type === 'player:play') {
-                        sendSyncAction('play', lastKnownTime);
                     }
                 }
 
                 if (playerPlatform === 'vk') {
                     if (msg.event === 'timeupdate' && typeof msg.time === 'number') {
-                        if (Math.abs(msg.time - lastKnownTime) > 2.5) {
+                        if (!isRemoteSync && Math.abs(msg.time - lastKnownTime) > 2.2) {
                             sendSyncAction('seek', msg.time);
                         }
                         lastKnownTime = msg.time;
                     } else if (msg.event === 'play') {
-                        sendSyncAction('play', lastKnownTime);
+                        isPlaying = true;
+                        if (!isRemoteSync) sendSyncAction('play', lastKnownTime);
                     } else if (msg.event === 'pause') {
-                        sendSyncAction('pause', lastKnownTime);
+                        isPlaying = false;
+                        if (!isRemoteSync) sendSyncAction('pause', lastKnownTime);
                     }
                 }
             });
 
             function applyIncomingSync(data) {
                 if (data.senderId === myPeerId) return;
+
+                if (data.action === 'request_state') {
+                    const currentTime = videoElement ? videoElement.currentTime : lastKnownTime;
+                    const playingNow = videoElement ? !videoElement.paused : isPlaying;
+                    if (currentTime > 0 || playingNow) {
+                        sendSyncAction(playingNow ? 'play' : 'pause', currentTime);
+                    }
+                    return;
+                }
+
                 triggerLocalSyncGuard();
 
                 if (videoElement) {
@@ -401,11 +407,21 @@
                 if (iframeElement && iframeElement.contentWindow) {
                     if (playerPlatform === 'rutube') {
                         if (typeof data.time === 'number' && Math.abs(lastKnownTime - data.time) > 1.5) {
-                            iframeElement.contentWindow.postMessage(JSON.stringify({ type: 'player:setCurrentTime', data: { time: data.time } }), '*');
+                            iframeElement.contentWindow.postMessage(JSON.stringify({
+                                type: 'player:setCurrentTime',
+                                data: { time: data.time }
+                            }), '*');
                             lastKnownTime = data.time;
                         }
-                        if (data.action === 'play') iframeElement.contentWindow.postMessage(JSON.stringify({ type: 'player:play', data: {} }), '*');
-                        if (data.action === 'pause') iframeElement.contentWindow.postMessage(JSON.stringify({ type: 'player:pause', data: {} }), '*');
+                        if (data.action === 'play') {
+                            isPlaying = true;
+                            iframeElement.contentWindow.postMessage(JSON.stringify({ type: 'player:play', data: {} }), '*');
+                            if (syncStatusText) syncStatusText.textContent = 'Синхронизация: воспроизведение';
+                        } else if (data.action === 'pause') {
+                            isPlaying = false;
+                            iframeElement.contentWindow.postMessage(JSON.stringify({ type: 'player:pause', data: {} }), '*');
+                            if (syncStatusText) syncStatusText.textContent = 'Синхронизация: пауза';
+                        }
                     } else if (playerPlatform === 'vk') {
                         if (typeof data.time === 'number' && Math.abs(lastKnownTime - data.time) > 1.5) {
                             iframeElement.contentWindow.postMessage(JSON.stringify({ method: 'seek', time: data.time }), '*');
@@ -424,14 +440,14 @@
             }
 
             if (videoElement) {
-                videoElement.addEventListener('play', () => sendSyncAction('play', videoElement.currentTime));
-                videoElement.addEventListener('pause', () => sendSyncAction('pause', videoElement.currentTime));
-                videoElement.addEventListener('seeked', () => sendSyncAction('seek', videoElement.currentTime));
-}
-                        chatSocket.onmessage = (e) => {
+                videoElement.addEventListener('play', () => { if (!isRemoteSync) sendSyncAction('play', videoElement.currentTime); });
+                videoElement.addEventListener('pause', () => { if (!isRemoteSync) sendSyncAction('pause', videoElement.currentTime); });
+                videoElement.addEventListener('seeked', () => { if (!isRemoteSync) sendSyncAction('seek', videoElement.currentTime); });
+            }
+
+            chatSocket.onmessage = (e) => {
                 const data = JSON.parse(e.data);
 
-                // Если создатель кикнул текущего пользователя — мгновенно выкидываем на главную
                 if (data.type === 'user_kicked' && data.kicked_user_id === currentUserId) {
                     alert('Создатель комнаты исключил вас. Повторный вход запрещен.');
                     window.location.href = '/';
@@ -460,35 +476,32 @@
                     handleVoiceSignal(data);
                 }
             };
-
             const chatForm = document.getElementById('chat-form');
             const chatInput = document.getElementById('chat-input');
 
             if (chatForm && chatInput) {
                 chatForm.addEventListener('submit', (e) => {
+                    e.preventDefault();
                     const text = chatInput.value.trim();
-                    if (!text) { e.preventDefault(); return; }
+                    if (!text) return;
+
                     if (isSocketOpen) {
-                        e.preventDefault();
                         chatSocket.send(JSON.stringify({ 'message': text, 'username': currentUsername }));
                         chatInput.value = '';
                     }
                 });
             }
 
-            // --- ГОЛОСОВОЙ ЧАТ (Polite Peer WebRTC) ---
             let localStream = null;
             let isVoiceActive = false;
             let isMuted = false;
             let voicePingInterval = null;
             const peers = {};
             const makingOffer = {};
-                        const rtcConfig = {
+            const rtcConfig = {
                 iceServers: [
-                    { urls: 'stun:stun.l.google.com:19302' },
-                    { urls: 'stun:stun1.l.google.com:19302' }
-                    // ВАЖНО: Для работы голоса через интернет (а не в одной сети)
-                    // сюда нужен ваш TURN-сервер.
+                    { urls: 'stun:://google.com' },
+                    { urls: 'stun:://google.com' }
                 ]
             };
 
@@ -534,6 +547,7 @@
                     leaveVoice();
                 }
             });
+
             btnMuteToggle.addEventListener('click', () => {
                 if (!localStream) return;
                 isMuted = !isMuted;
@@ -543,51 +557,29 @@
 
             function leaveVoice() {
                 isVoiceActive = false;
-                if (voicePingInterval) {
-                    clearInterval(voicePingInterval);
-                    voicePingInterval = null;
-                }
-                if (localStream) {
-                    localStream.getTracks().forEach(track => track.stop());
-                    localStream = null;
-                }
-                Object.keys(peers).forEach(id => {
-                    peers[id].close();
-                    delete peers[id];
-                });
+                if (voicePingInterval) { clearInterval(voicePingInterval); voicePingInterval = null; }
+                if (localStream) { localStream.getTracks().forEach(track => track.stop()); localStream = null; }
+                Object.keys(peers).forEach(id => { peers[id].close(); delete peers[id]; });
                 remoteAudios.innerHTML = '';
                 btnVoiceToggle.textContent = '🎙 Войти в голос';
                 btnVoiceToggle.style.background = '#1e161a';
                 btnMuteToggle.style.display = 'none';
                 updateVoiceStatus();
-                if (isSocketOpen) {
-                    chatSocket.send(JSON.stringify({ type: 'voice_leave', peerId: myPeerId }));
-                }
+                if (isSocketOpen) chatSocket.send(JSON.stringify({ type: 'voice_leave', peerId: myPeerId }));
             }
 
-            window.addEventListener('beforeunload', () => {
-                if (isVoiceActive) leaveVoice();
-            });
+            window.addEventListener('beforeunload', () => { if (isVoiceActive) leaveVoice(); });
 
             function createPeerConnection(remotePeerId) {
-                if (peers[remotePeerId]) {
-                    peers[remotePeerId].close();
-                }
+                if (peers[remotePeerId]) peers[remotePeerId].close();
                 const pc = new RTCPeerConnection(rtcConfig);
                 peers[remotePeerId] = pc;
 
-                if (localStream) {
-                    localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
-                }
+                if (localStream) localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
 
                 pc.onicecandidate = (event) => {
                     if (event.candidate && isSocketOpen) {
-                        chatSocket.send(JSON.stringify({
-                            type: 'voice_ice',
-                            peerId: myPeerId,
-                            target: remotePeerId,
-                            candidate: event.candidate
-                        }));
+                        chatSocket.send(JSON.stringify({ type: 'voice_ice', peerId: myPeerId, target: remotePeerId, candidate: event.candidate }));
                     }
                 };
 
@@ -604,7 +596,7 @@
                 };
 
                 pc.onconnectionstatechange = () => {
-                    if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed' || pc.connectionState === 'closed') {
+                    if (['disconnected', 'failed', 'closed'].includes(pc.connectionState)) {
                         delete peers[remotePeerId];
                         const audio = document.getElementById(`audio-${remotePeerId}`);
                         if (audio) audio.remove();
@@ -630,12 +622,7 @@
                         const offer = await pc.createOffer();
                         await pc.setLocalDescription(offer);
                         makingOffer[remotePeerId] = false;
-                        chatSocket.send(JSON.stringify({
-                            type: 'voice_offer',
-                            peerId: myPeerId,
-                            target: remotePeerId,
-                            offer: offer
-                        }));
+                        chatSocket.send(JSON.stringify({ type: 'voice_offer', peerId: myPeerId, target: remotePeerId, offer: offer }));
                     } else if (data.type === 'voice_offer') {
                         const isPolite = myPeerId < remotePeerId;
                         const offerCollision = makingOffer[remotePeerId] || (peers[remotePeerId] && peers[remotePeerId].signalingState !== 'stable');
@@ -645,21 +632,13 @@
                         await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
                         const answer = await pc.createAnswer();
                         await pc.setLocalDescription(answer);
-                        chatSocket.send(JSON.stringify({
-                            type: 'voice_answer',
-                            peerId: myPeerId,
-                            target: remotePeerId,
-                            answer: answer
-                        }));
+                        chatSocket.send(JSON.stringify({ type: 'voice_answer', peerId: myPeerId, target: remotePeerId, answer: answer }));
                     } else if (data.type === 'voice_answer' && peers[remotePeerId]) {
                         await peers[remotePeerId].setRemoteDescription(new RTCSessionDescription(data.answer));
                     } else if (data.type === 'voice_ice' && peers[remotePeerId]) {
                         await peers[remotePeerId].addIceCandidate(new RTCIceCandidate(data.candidate));
                     } else if (data.type === 'voice_leave') {
-                        if (peers[remotePeerId]) {
-                            peers[remotePeerId].close();
-                            delete peers[remotePeerId];
-                        }
+                        if (peers[remotePeerId]) { peers[remotePeerId].close(); delete peers[remotePeerId]; }
                         const audio = document.getElementById(`audio-${remotePeerId}`);
                         if (audio) audio.remove();
                         updateVoiceStatus();
