@@ -290,7 +290,7 @@
             let lastKnownTime = 0, isPlayerPlaying = false;
             let latestHostState = { is_playing: false, current_time: 0 };
 
-            // --- ИСПРАВЛЕННЫЙ ПЛЕЕР RUTUBE И VK ---
+            // --- ИСПРАВЛЕННЫЙ ПЛЕЕР (VK + RUTUBE) ---
             function detectAndBuildIframe(url) {
                 if (url.includes('rutube.ru/video/')) {
                     playerPlatform = 'rutube';
@@ -300,6 +300,7 @@
                 if (url.includes('vk.com') || url.includes('vkvideo.ru/video')) {
                     playerPlatform = 'vk';
                     const m = url.match(/video(-?\d+)_(\d+)/);
+                    // Добавляем js_api=1 чтобы ВК отправлял события наружу
                     return m ? 'https://vk.com/video_ext.php?oid=' + m[1] + '&id=' + m[2] + '&hd=2&js_api=1' : url;
                 }
                 if (url.includes('youtube.com') || url.includes('youtu.be')) {
@@ -310,7 +311,6 @@
                 return url;
             }
 
-            // Отправка команд в iframe (Rutube/VK)
             function sendIframeCommand(cmd, timeVal) {
                 if (!iframeEl || !iframeEl.contentWindow) return;
                 if (playerPlatform === 'rutube') {
@@ -318,13 +318,13 @@
                     if (cmd === 'play') iframeEl.contentWindow.postMessage(JSON.stringify({ type: 'player:play', data: {} }), '*');
                     if (cmd === 'pause') iframeEl.contentWindow.postMessage(JSON.stringify({ type: 'player:pause', data: {} }), '*');
                 } else if (playerPlatform === 'vk') {
-                    if (typeof timeVal === 'number') iframeEl.contentWindow.postMessage(JSON.stringify({ method: 'seek', time: timeVal }), '*');
-                    if (cmd === 'play') iframeEl.contentWindow.postMessage(JSON.stringify({ method: 'play' }), '*');
-                    if (cmd === 'pause') iframeEl.contentWindow.postMessage(JSON.stringify({ method: 'pause' }), '*');
+                    // ВК требует другой формат API-команд через postMessage
+                    if (cmd === 'play') iframeEl.contentWindow.postMessage(JSON.stringify({ method: 'play', params: [] }), '*');
+                    if (cmd === 'pause') iframeEl.contentWindow.postMessage(JSON.stringify({ method: 'pause', params: [] }), '*');
+                    if (typeof timeVal === 'number') iframeEl.contentWindow.postMessage(JSON.stringify({ method: 'seek', params: [timeVal] }), '*');
                 }
             }
 
-            // Оверлей для зрителей (синхронизация)
             function attachViewerOverlay(onConnect) {
                 if (isHost) return;
                 const overlay = document.createElement('div');
@@ -334,7 +334,6 @@
                 document.getElementById('btn-connect-stream').onclick = () => { viewerConnected = true; overlay.remove(); onConnect(); };
             }
 
-            // Инициализация плеера
             if (directUrl) {
                 playerPlatform = 'direct';
                 videoEl = document.createElement('video');
@@ -360,7 +359,7 @@
                 });
             }
 
-            // Обработка сообщений от iframe
+            // Обработка событий от ВК и Рутуба
             window.addEventListener('message', (event) => {
                 if (!iframeEl) return;
                 let msg = event.data;
@@ -375,23 +374,23 @@
                         else if (st === 'paused' || st === 'pause' || st === 'stopped') { isPlayerPlaying = false; if (isHost) syncTick(); }
                     }
                 } else if (playerPlatform === 'vk') {
+                    // ВК отдает события в формате { event: '...', ... }
                     if (msg.event === 'timeupdate' && typeof msg.time === 'number') lastKnownTime = msg.time;
                     else if (msg.event === 'play') { isPlayerPlaying = true; if (isHost) syncTick(); }
                     else if (msg.event === 'pause') { isPlayerPlaying = false; if (isHost) syncTick(); }
                 }
             });
 
-            // Закрытие вкладки (выход)
             window.addEventListener('beforeunload', () => navigator.sendBeacon(leaveUrl, new Blob(['{}'], { type: 'application/json' })));
 
-            // --- ГОЛОСОВОЙ ЧАТ (WebRTC) ---
+            // --- ГОЛОСОВОЙ ЧАТ ---
             let localStream = null, isVoiceActive = false, isMuted = false, pendingVoiceAction = null;
             const peers = {}, outgoingSignals = [];
 
-            // ИСПРАВЛЕННЫЙ STUN
             const rtcConfig = {
                 iceServers: [
                     { urls: 'stun:stun.l.google.com:19302' },
+                    { urls: 'stun:stun1.l.google.com:19302' },
                     { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
                     { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' }
                 ]
@@ -453,6 +452,14 @@
             // --- ЧАТ И СИНХРОНИЗАЦИЯ ---
             let lastMsgId = 0, pendingChatMsg = '';
             const chatBox = document.getElementById('chat-box');
+
+            // Берем максимальный ID из уже отрисованных сообщений, чтобы не дублировать их при первом запросе
+            document.querySelectorAll('#chat-box .message-item').forEach(el => {
+                // Если в сообщении нет data-id, мы не сможем точно определить, но это лучше, чем 0
+                const msgId = parseInt(el.dataset.id || '0');
+                if (msgId > lastMsgId) lastMsgId = msgId;
+            });
+
             document.getElementById('chat-form').addEventListener('submit', e => {
                 e.preventDefault();
                 const inp = document.getElementById('chat-input');
@@ -508,16 +515,18 @@
                         });
                         for (const sig of (data.signals || [])) {
                             const pc = getOrCreatePeer(sig.from, false);
-                            if (sig.type === 'offer') {
-                                await pc.setRemoteDescription(new RTCSessionDescription(sig.data));
-                                const ans = await pc.createAnswer();
-                                await pc.setLocalDescription(ans);
-                                outgoingSignals.push({ to: sig.from, type: 'answer', data: pc.localDescription });
-                            } else if (sig.type === 'answer') {
-                                await pc.setRemoteDescription(new RTCSessionDescription(sig.data));
-                            } else if (sig.type === 'ice') {
-                                await pc.addIceCandidate(new RTCIceCandidate(sig.data));
-                            }
+                            try {
+                                if (sig.type === 'offer') {
+                                    await pc.setRemoteDescription(new RTCSessionDescription(sig.data));
+                                    const ans = await pc.createAnswer();
+                                    await pc.setLocalDescription(ans);
+                                    outgoingSignals.push({ to: sig.from, type: 'answer', data: pc.localDescription });
+                                } else if (sig.type === 'answer') {
+                                    await pc.setRemoteDescription(new RTCSessionDescription(sig.data));
+                                } else if (sig.type === 'ice') {
+                                    await pc.addIceCandidate(new RTCIceCandidate(sig.data));
+                                }
+                            } catch(e) { console.error("WebRTC Signal error", e); }
                         }
                     }
 
@@ -527,18 +536,19 @@
                         if (empty) empty.remove();
                         const div = document.createElement('div');
                         div.className = 'message-item';
+                        div.dataset.id = m.id; // Сохраняем ID в DOM
                         div.innerHTML = `<span class="message-author">${m.user}:</span> ${m.text}`;
                         chatBox.appendChild(div);
                         chatBox.scrollTop = chatBox.scrollHeight;
                     });
-                } catch (e) {}
+                } catch (e) { console.error("Sync error", e); }
             }
 
             if (isHost && videoEl) {
                 ['play', 'pause', 'seeked'].forEach(ev => videoEl.addEventListener(ev, syncTick));
             }
             syncTick();
-            setInterval(syncTick, 2000); // Уменьшил интервал до 2 секунд для более плавной синхронизации
+            setInterval(syncTick, 2000);
         });
     </script>
 </body>
