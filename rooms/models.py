@@ -3,6 +3,8 @@ import uuid
 import random
 import string
 from django.contrib.auth.models import User
+from django.utils import timezone
+from datetime import timedelta
 
 
 def generate_room_code():
@@ -25,10 +27,20 @@ class Room(models.Model):
     is_18_plus = models.BooleanField(default=False)
     banned_users = models.ManyToManyField(User, related_name='banned_rooms', blank=True)
 
+    # Синхронизация видео, голосовой канал и WebRTC-сигналы в БД SQLite
+    is_playing = models.BooleanField(default=False)
+    current_time = models.FloatField(default=0.0)
+    voice_state = models.JSONField(default=dict, blank=True)
+    webrtc_signals = models.JSONField(default=list, blank=True)
+
     def save(self, *args, **kwargs):
         if self.is_private and not self.access_code:
             self.access_code = generate_room_code()
         super().save(*args, **kwargs)
+
+    def cleanup_stale_participants(self, timeout_seconds=12):
+        cutoff = timezone.now() - timedelta(seconds=timeout_seconds)
+        self.participants.filter(last_seen__lt=cutoff).exclude(user=self.host).delete()
 
     def __str__(self):
         return self.name
@@ -38,6 +50,7 @@ class Participant(models.Model):
     room = models.ForeignKey(Room, on_delete=models.CASCADE, related_name='participants')
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
     joined_at = models.DateTimeField(auto_now_add=True)
+    last_seen = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return f"{self.user} в {self.room.name}"

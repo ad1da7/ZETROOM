@@ -8,28 +8,19 @@
     <link href="https://googleapis.com" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; border-radius: 0 !important; }
-
         body {
-            font-family: 'Inter', sans-serif;
-            min-height: 100vh;
-            background:
-                linear-gradient(rgba(248, 200, 212, 0.55), rgba(248, 200, 212, 0.65)),
-                url("{% static 'images/vice_city.png' %}") no-repeat center center fixed;
-            background-size: cover;
-            background-color: #f8c8d4;
-            color: #1e161a;
-            position: relative;
-            overflow-x: hidden;
+            font-family: 'Inter', sans-serif; min-height: 100vh;
+            background: linear-gradient(rgba(248, 200, 212, 0.55), rgba(248, 200, 212, 0.65)),
+                        url("{% static 'images/vice_city.png' %}") no-repeat center center fixed;
+            background-size: cover; background-color: #f8c8d4; color: #1e161a; overflow-x: hidden;
         }
-
         .navbar {
             position: sticky; top: 0; z-index: 100; background-color: #1e161a;
             border-bottom: 3px solid #d65a7b; padding: 0 32px; height: 68px;
             display: flex; justify-content: space-between; align-items: center;
         }
         .brand-logo { display: flex; align-items: center; text-decoration: none; height: 100%; }
-        .brand-logo img { height: 44px; width: auto; object-fit: contain; display: block; transition: transform 0.15s ease; }
-        .brand-logo:hover img { transform: scale(1.03); }
+        .brand-logo img { height: 44px; width: auto; object-fit: contain; display: block; }
         .nav-links { display: flex; align-items: center; gap: 8px; }
         .nav-btn {
             text-decoration: none; background: transparent; color: #f8c8d4;
@@ -41,20 +32,16 @@
         .nav-btn-accent { background-color: #d65a7b; color: #ffffff; border-color: #d65a7b; }
         .nav-btn-accent:hover { background-color: #b84463; color: #ffffff; border-color: #b84463; }
         .nav-btn-admin { background-color: #2d2026; color: #f8c8d4; border-color: #f8c8d4; }
-        .nav-btn-admin:hover { background-color: #f8c8d4; color: #1e161a; }
-
         .profile-chip {
             display: inline-flex; align-items: center; gap: 10px; background: #2d2026;
             padding: 6px 14px 6px 6px; text-decoration: none; color: #ffffff;
             font-family: 'Oswald', sans-serif; letter-spacing: 1px; font-size: 0.9rem; border: 1px solid #543b47;
         }
-        .profile-chip:hover { border-color: #f8c8d4; }
         .chip-avatar {
             width: 28px; height: 28px; object-fit: cover; background: #d65a7b; color: #fff;
             display: flex; align-items: center; justify-content: center; font-weight: 700;
         }
-
-        .main-wrapper { position: relative; z-index: 1; max-width: 1200px; margin: 40px auto; padding: 0 24px; }
+        .main-wrapper { max-width: 1200px; margin: 40px auto; padding: 0 24px; }
         .hero-header {
             display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 32px;
             padding: 20px 24px; background: rgba(255, 255, 255, 0.92); border: 2px solid #1e161a;
@@ -62,53 +49,32 @@
         }
         .hero-title { font-family: 'Oswald', sans-serif; font-size: 2.2rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; }
         .hero-subtitle { color: #6b4c57; font-size: 0.9rem; margin-top: 4px; text-transform: uppercase; font-weight: 600; }
-
         .controls-right { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 460px; }
         .age-tabs { display: flex; gap: 8px; }
         .age-tab {
             padding: 6px 14px; border: 2px solid #1e161a; background: #fce8ed; color: #1e161a;
             font-family: 'Oswald', sans-serif; font-size: 0.85rem; text-transform: uppercase;
-            letter-spacing: 1px; cursor: pointer; transition: 0.15s;
+            letter-spacing: 1px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
         }
         .age-tab.active, .age-tab:hover { background: #1e161a; color: #f8c8d4; }
         .age-tab.tab-18.active { background: #c93b5b; border-color: #1e161a; color: #ffffff; }
-
-        .filter-form { display: flex; gap: 8px; width: 100%; }
         .search-bar {
-            flex: 1; padding: 12px 16px; border: 2px solid #1e161a; background: #fce8ed;
+            width: 100%; padding: 12px 16px; border: 2px solid #1e161a; background: #fce8ed;
             color: #1e161a; font-family: 'Inter', sans-serif; font-size: 0.95rem; outline: none;
         }
         .search-bar:focus { border-color: #d65a7b; background: #ffffff; }
-        .alert-banner {
-            background: #1e161a; color: #f8c8d4; border-left: 4px solid #d65a7b;
-            padding: 14px 20px; margin-bottom: 24px; font-family: 'Oswald', sans-serif; letter-spacing: 1px;
-        }
-
         .rooms-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 24px; }
-
         .room-card {
             background: #ffffff; border: 2px solid #1e161a; box-shadow: 6px 6px 0px #1e161a;
-            display: flex; flex-direction: column;
-            opacity: 1;
-            transform: scale(1) translateY(0);
-            transition: opacity 0.28s ease, transform 0.28s ease, box-shadow 0.15s ease;
+            display: flex; flex-direction: column; transition: opacity 0.25s ease, transform 0.25s ease, box-shadow 0.15s ease;
         }
-        .room-card.hiding {
-            opacity: 0;
-            transform: scale(0.94) translateY(10px);
-            pointer-events: none;
-        }
-        .room-card.hidden-card {
-            display: none !important;
-        }
+        .room-card.hidden-card { display: none !important; }
         .room-card:hover { transform: translate(-2px, -2px); box-shadow: 8px 8px 0px #d65a7b; }
-
         .room-preview, .room-preview-empty {
             height: 155px; position: relative; display: flex; justify-content: center; align-items: center; border-bottom: 2px solid #1e161a;
         }
         .room-preview { background: linear-gradient(135deg, #f8c8d4 0%, #e692a8 50%, #d65a7b 100%); }
         .room-preview-empty { background: repeating-linear-gradient(-45deg, #fce8ed, #fce8ed 12px, #f8c8d4 12px, #f8c8d4 24px); }
-
         .live-pill {
             position: absolute; top: 12px; left: 12px; background: #1e161a; color: #f8c8d4;
             font-family: 'Oswald', sans-serif; font-size: 0.75rem; letter-spacing: 1px; padding: 4px 10px; border: 1px solid #d65a7b;
@@ -121,15 +87,14 @@
             position: absolute; top: 12px; right: 12px; background: #ffffff; color: #1e161a;
             border: 1px solid #1e161a; font-family: 'Oswald', sans-serif; font-size: 0.8rem; font-weight: 700; padding: 3px 10px;
         }
-        .play-box {
+                .play-box {
             width: 48px; height: 48px; background: rgba(30, 22, 26, 0.88); color: #f8c8d4;
-            display: flex; justify-content: center; align-items: center; font-size: 1.2rem; border: 2px solid #ffffff;
+            display: flex; justify-content: center; align-items: center; border: 2px solid #ffffff;
         }
         .no-video-badge {
             background: #ffffff; color: #1e161a; border: 2px solid #1e161a; padding: 6px 14px;
             font-family: 'Oswald', sans-serif; font-size: 0.85rem; letter-spacing: 1px; text-transform: uppercase;
         }
-
         .room-body { padding: 20px; flex: 1; display: flex; flex-direction: column; justify-content: space-between; }
         .room-title { font-family: 'Oswald', sans-serif; font-size: 1.3rem; text-transform: uppercase; margin-bottom: 6px; }
         .room-desc { font-size: 0.88rem; color: #6b4c57; margin-bottom: 16px; line-height: 1.4; }
@@ -145,15 +110,12 @@
             text-decoration: none; background: #c93b5b; color: #ffffff; font-family: 'Oswald', sans-serif;
             letter-spacing: 1px; text-transform: uppercase; font-size: 0.85rem; padding: 8px 12px;
         }
-        .btn-card-delete:hover { background: #9e2a45; }
-
         .empty-lobby {
             background: rgba(255, 255, 255, 0.94); border: 2px solid #1e161a;
             box-shadow: 6px 6px 0px #1e161a; padding: 60px 24px; text-align: center;
         }
         .empty-lobby h2 { font-family: 'Oswald', sans-serif; font-size: 1.6rem; text-transform: uppercase; margin-bottom: 10px; }
         .empty-lobby p { color: #6b4c57; margin-bottom: 24px; }
-
         .modal-overlay {
             display: none; position: fixed; inset: 0; background: rgba(30, 22, 26, 0.75);
             justify-content: center; align-items: center; padding: 20px; z-index: 1000;
@@ -179,12 +141,13 @@
             padding: 10px; background: #fce8ed; border: 1px solid #1e161a; cursor: pointer;
         }
         .checkbox-row input { width: 18px; height: 18px; accent-color: #d65a7b; cursor: pointer; }
-        .checkbox-row span { font-family: 'Oswald', sans-serif; font-size: 0.9rem; text-transform: uppercase; }
+        .checkbox-row span { font-family: 'Oswald', sans-serif; font-size: 0.9rem; text-transform: uppercase; display: inline-flex; align-items: center; gap: 6px; }
         .btn-submit-modal {
             width: 100%; padding: 14px; border: none; background: #1e161a; color: #f8c8d4;
             font-family: 'Oswald', sans-serif; font-size: 1rem; letter-spacing: 1.5px; text-transform: uppercase; cursor: pointer;
         }
         .btn-submit-modal:hover { background: #d65a7b; color: #ffffff; }
+        .strict-tag { background: #1e161a; color: #f8c8d4; padding: 2px 6px; font-size: 0.75rem; font-weight: 700; }
     </style>
 </head>
 <body>
@@ -199,65 +162,51 @@
                     <a href="/admin/" class="nav-btn nav-btn-admin">Админ-панель</a>
                 {% endif %}
                 <a href="{% url 'profile' %}" class="profile-chip">
-                    {% if user.profile.avatar %}
-                        <img src="{{ user.profile.avatar.url }}" alt="Аватар" class="chip-avatar">
-                    {% else %}
-                        <div class="chip-avatar">{{ user.username|first|upper }}</div>
-                    {% endif %}
+                    {% if user.profile.avatar %}<img src="{{ user.profile.avatar.url }}" alt="Аватар" class="chip-avatar">{% else %}<div class="chip-avatar">{{ user.username|first|upper }}</div>{% endif %}
                     <span>{{ user.profile.tag|default:user.username }}</span>
                 </a>
             {% else %}
-                <a href="{% url 'login' %}" class="nav-btn nav-btn-accent">+ Создать</a>
-                <a href="{% url 'login' %}" class="nav-btn">Присоединиться</a>
                 <a href="{% url 'login' %}" class="nav-btn">Войти</a>
                 <a href="{% url 'register' %}" class="nav-btn nav-btn-accent">Регистрация</a>
             {% endif %}
         </div>
     </nav>
-
     <main class="main-wrapper">
         <div class="hero-header">
             <div>
                 <h1 class="hero-title">Активные сессии</h1>
                 <p class="hero-subtitle">Прямые трансляции и совместные кинозалы Zetroom</p>
             </div>
-
             <div class="controls-right">
                 <div class="age-tabs">
                     <button type="button" class="age-tab active" data-filter="all">Все комнаты</button>
-                    <button type="button" class="age-tab tab-18" data-filter="18">🔞 Только 18+ контент</button>
+                    <button type="button" class="age-tab tab-18" data-filter="18"><span class="strict-tag">18+</span> Только 18+ контент</button>
                 </div>
-
                 <form method="GET" action="{% url 'index' %}" class="filter-form" onsubmit="return false;">
                     <input type="text" id="live-room-search" name="q" value="{{ query|default:'' }}" class="search-bar" placeholder="ПОИСК ПО НАЗВАНИЮ..." autocomplete="off">
                 </form>
             </div>
         </div>
 
-        {% if error %}
-            <div class="alert-banner">{{ error }}</div>
-        {% endif %}
-
         {% if rooms %}
             <div class="rooms-grid" id="rooms-grid">
                 {% for room in rooms %}
-                    <div class="room-card" data-room-name="{{ room.name|lower }}" data-is-18="{{ room.is_18_plus|yesno:'true,false' }}">
+                    <div class="room-card" data-room-uuid="{{ room.uuid }}" data-room-name="{{ room.name|lower }}" data-is-18="{{ room.is_18_plus|yesno:'true,false' }}">
                         {% if room.video_url %}
                             <div class="room-preview" {% if room.thumbnail_url %}style="background: linear-gradient(rgba(30, 22, 26, 0.25), rgba(30, 22, 26, 0.45)), url('{{ room.thumbnail_url }}') center/cover no-repeat;"{% endif %}>
                                 <span class="live-pill">● В ЭФИРЕ</span>
-                                <span class="users-pill">ЗРИТЕЛЕЙ: {{ room.participants.count }} / {{ room.max_participants }}</span>
+                                <span class="users-pill" id="count-{{ room.uuid }}">ЗРИТЕЛЕЙ: {{ room.participants.count }} / {{ room.max_participants }}</span>
                                 {% if room.is_18_plus %}<span class="badge-18">18+</span>{% endif %}
-                                <div class="play-box">▶</div>
+                                <div class="play-box"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></div>
                             </div>
                         {% else %}
                             <div class="room-preview-empty">
                                 <span class="live-pill">● ОЖИДАНИЕ</span>
-                                <span class="users-pill">ЗРИТЕЛЕЙ: {{ room.participants.count }} / {{ room.max_participants }}</span>
+                                <span class="users-pill" id="count-{{ room.uuid }}">ЗРИТЕЛЕЙ: {{ room.participants.count }} / {{ room.max_participants }}</span>
                                 {% if room.is_18_plus %}<span class="badge-18">18+</span>{% endif %}
                                 <div class="no-video-badge">Без видео • Чат</div>
                             </div>
                         {% endif %}
-
                         <div class="room-body">
                             <div>
                                 <div class="room-title">{{ room.name }}</div>
@@ -280,23 +229,11 @@
                     </div>
                 {% endfor %}
             </div>
-            <div class="empty-lobby" id="no-filter-results" style="display: none;">
-                <h2>Ничего не найдено</h2>
-                <p>Попробуйте изменить поисковый запрос или фильтр.</p>
-            </div>
+            <div class="empty-lobby" id="no-filter-results" style="display: none;"><h2>Ничего не найдено</h2><p>Попробуйте изменить поисковый запрос или фильтр.</p></div>
         {% else %}
-            <div class="empty-lobby">
-                <h2>Пока нет активных комнат</h2>
-                <p>Создайте первую сессию и пригласите зрителей.</p>
-                {% if user.is_authenticated %}
-                    <button type="button" class="nav-btn nav-btn-accent" onclick="document.getElementById('createRoomModal').style.display='flex'">+ Создать комнату</button>
-                {% else %}
-                    <a href="{% url 'register' %}" class="nav-btn nav-btn-accent">Регистрация для входа</a>
-                {% endif %}
-            </div>
+            <div class="empty-lobby"><h2>Пока нет активных комнат</h2><p>Создайте первую сессию и пригласите зрителей.</p></div>
         {% endif %}
     </main>
-
     <div class="modal-overlay" id="createRoomModal" onclick="if(event.target === this) this.style.display='none'">
         <div class="modal-box">
             <div class="modal-header">
@@ -306,27 +243,24 @@
             <form method="POST" action="{% url 'create_room' %}">
                 {% csrf_token %}
                 <label class="field-label">Название комнаты *</label>
-                <input type="text" name="room_name" class="modal-input" placeholder="НАЗВАНИЕ..." required autocomplete="off">
-
+                <input type="text" name="room_name" class="modal-input" required autocomplete="off">
                 <label class="field-label">Описание</label>
-                <textarea name="description" class="modal-input" rows="2" placeholder="ОПИСАНИЕ СЕССИИ..."></textarea>
-
+                <textarea name="description" class="modal-input" rows="2"></textarea>
                 <label class="field-label">Ссылка на видео</label>
                 <input type="url" name="video_url" class="modal-input" placeholder="https://..." autocomplete="off">
-
                 <label class="field-label">Максимум участников</label>
                 <input type="number" name="max_participants" class="modal-input" value="10" min="1" max="100" required>
-
                 <label class="checkbox-row">
                     <input type="checkbox" name="is_18_plus">
-                    <span>🔞 Контент 18+ (вход только для совершеннолетних)</span>
+                    <span><span class="strict-tag">18+</span> Контент 18+ (только для совершеннолетних)</span>
                 </label>
-
                 <label class="checkbox-row">
                     <input type="checkbox" name="is_private">
-                    <span>🔒 Частная комната (скрыта из списка, вход только по коду)</span>
+                    <span>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="#1e161a"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+                        Частная комната (вход только по коду)
+                    </span>
                 </label>
-
                 <button type="submit" class="btn-submit-modal">Создать и войти</button>
             </form>
         </div>
@@ -341,7 +275,7 @@
             <form method="POST" action="{% url 'join_room' %}">
                 {% csrf_token %}
                 <label class="field-label">Код доступа, ID или название *</label>
-                <input type="text" name="query" class="modal-input" placeholder="ВВЕДИТЕ КОД ПРИВАТНОЙ КОМНАТЫ ИЛИ ID..." required autocomplete="off">
+                <input type="text" name="query" class="modal-input" required autocomplete="off">
                 <button type="submit" class="btn-submit-modal">Подключиться</button>
             </form>
         </div>
@@ -353,63 +287,47 @@
             const cards = document.querySelectorAll(".room-card");
             const noResults = document.getElementById("no-filter-results");
             const ageTabs = document.querySelectorAll(".age-tab");
-
             let currentAgeFilter = "all";
-            let filterTimeout = null;
 
-            function applySmoothFilter() {
-                const query = searchInput ? searchInput.value.toLowerCase().trim() : "";
-                let visibleCount = 0;
-
-                cards.forEach(card => {
-                    const roomName = card.getAttribute("data-room-name") || "";
-                    const is18 = card.getAttribute("data-is-18") === "true";
-
-                    const matchesSearch = roomName.includes(query);
-                    const matchesAge = (currentAgeFilter === "all") || (currentAgeFilter === "18" && is18);
-
-                    if (matchesSearch && matchesAge) {
-                        visibleCount++;
-                        if (card.classList.contains("hidden-card")) {
-                            card.classList.remove("hidden-card");
-                            requestAnimationFrame(() => {
-                                card.classList.remove("hiding");
-                            });
-                        } else {
-                            card.classList.remove("hiding");
-                        }
-                    } else {
-                        if (!card.classList.contains("hidden-card")) {
-                            card.classList.add("hiding");
-                            setTimeout(() => {
-                                if (card.classList.contains("hiding")) {
-                                    card.classList.add("hidden-card");
-                                }
-                            }, 280);
-                        }
-                    }
+            function applyFilter() {
+                const q = searchInput ? searchInput.value.toLowerCase().trim() : "";
+                let vis = 0;
+                cards.forEach(c => {
+                    const ok = (c.dataset.roomName || "").includes(q) &&
+                               (currentAgeFilter === "all" || (currentAgeFilter === "18" && c.dataset.is18 === "true"));
+                    c.classList.toggle("hidden-card", !ok);
+                    if (ok) vis++;
                 });
-
-                if (noResults) {
-                    noResults.style.display = visibleCount === 0 ? "block" : "none";
-                }
+                if (noResults) noResults.style.display = vis === 0 ? "block" : "none";
             }
 
-            if (searchInput) {
-                searchInput.addEventListener("input", () => {
-                    clearTimeout(filterTimeout);
-                    filterTimeout = setTimeout(applySmoothFilter, 120);
-                });
-            }
+            if (searchInput) searchInput.addEventListener("input", applyFilter);
+            ageTabs.forEach(t => t.addEventListener("click", () => {
+                ageTabs.forEach(x => x.classList.remove("active"));
+                t.classList.add("active");
+                currentAgeFilter = t.dataset.filter;
+                applyFilter();
+            }));
 
-            ageTabs.forEach(tab => {
-                tab.addEventListener("click", () => {
-                    ageTabs.forEach(t => t.classList.remove("active"));
-                    tab.classList.add("active");
-                    currentAgeFilter = tab.getAttribute("data-filter");
-                    applySmoothFilter();
-                });
-            });
+            setInterval(async () => {
+                try {
+                    const res = await fetch("{% url 'rooms_counts_api' %}");
+                    if (!res.ok) return;
+                    const data = await res.json();
+                    const activeIds = new Set(Object.keys(data.rooms || {}));
+                    document.querySelectorAll(".room-card").forEach(card => {
+                        const uid = card.dataset.roomUuid;
+                        if (!activeIds.has(uid)) {
+                            card.remove();
+                            return;
+                        }
+                        const pill = document.getElementById("count-" + uid);
+                        if (pill) {
+                            pill.textContent = `ЗРИТЕЛЕЙ: ${data.rooms[uid].count} / ${data.rooms[uid].max}`;
+                        }
+                    });
+                } catch (e) {}
+            }, 3000);
         });
     </script>
 </body>

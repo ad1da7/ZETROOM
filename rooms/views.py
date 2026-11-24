@@ -3,10 +3,12 @@ import json
 import time
 import urllib.request
 from django.shortcuts import render, redirect, get_object_or_404
-from django.core.exceptions import ValidationError
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.utils import timezone
+from django.db import transaction
 from .models import Room, Participant, Message
 
 try:
@@ -16,16 +18,22 @@ except ImportError:
 
 
 def extract_direct_stream(video_url):
-    if not video_url or not yt_dlp:
+    if not video_url:
         return ''
-    if video_url.endswith('.mp4') or video_url.endswith('.m3u8'):
+    lower_url = video_url.lower()
+    if 'vk.com' in lower_url or 'vkvideo.ru' in lower_url or 'rutube.ru' in lower_url:
+        return ''
+    if lower_url.endswith('.mp4') or '.m3u8' in lower_url:
         return video_url
+    if not yt_dlp:
+        return ''
 
     ydl_opts = {
         'quiet': True,
         'no_warnings': True,
         'format': 'best[ext=mp4]/best',
         'noplaylist': True,
+        'socket_timeout': 8,
         'http_headers': {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
             'Accept-Language': 'ru-RU,ru;q=0.9',
@@ -49,7 +57,7 @@ def fetch_video_thumbnail(video_url):
             yt_match = re.search(r'(?:v=|youtu\.be/|shorts/|embed/)([a-zA-Z0-9_-]{11})', video_url)
             if yt_match:
                 yt_id = yt_match.group(1)
-                return "https://youtube.com" + f"/vi/{yt_id}/hqdefault.jpg"
+                return f"https://youtube.com{yt_id}/hqdefault.jpg"
 
         req = urllib.request.Request(
             video_url,
@@ -75,10 +83,11 @@ def index(request):
     age_filter = request.GET.get('age', 'all')
 
     rooms = Room.objects.filter(is_private=False).order_by('-created_at')
+    for r in rooms:
+        r.cleanup_stale_participants()
 
     if query:
         rooms = rooms.filter(name__icontains=query)
-
     if age_filter == '18':
         rooms = rooms.filter(is_18_plus=True)
 
@@ -87,77 +96,97 @@ def index(request):
         'query': query,
         'age_filter': age_filter
     })
+def rooms_counts_api(request):
+    rooms = Room.objects.filter(is_private=False)
+    data = {}
+    for r in rooms:
+        r.cleanup_stale_participants()
+        data[str(r.uuid)] = {
+            'count': r.participants.count(),
+            'max': r.max_participants
+        }
+    return JsonResponse({'rooms': data})
 
 
 def all_rooms(request):
     return redirect('index')
+
+
 @login_required
 def create_room(request):
     if request.method == 'POST':
-        room_name = request.POST.get('room_name', '').strip()
+        name = request.POST.get('room_name', '').strip()
         description = request.POST.get('description', '').strip()
         video_url = request.POST.get('video_url', '').strip()
+        max_participants = int(request.POST.get('max_participants', 10) or 10)
         is_18_plus = request.POST.get('is_18_plus') == 'on'
         is_private = request.POST.get('is_private') == 'on'
 
-        try:
-            max_participants = int(request.POST.get('max_participants', 10))
-            if max_participants < 1:
-                max_participants = 1
-        except ValueError:
-            max_participants = 10
-
-        if not room_name:
-            rooms = Room.objects.filter(is_private=False).order_by('-created_at')
-            return render(request, 'index.html', {
-                'rooms': rooms,
-                'error': 'ВВЕДИТЕ НАЗВАНИЕ КОМНАТЫ'
-            })
-
-        user_age = getattr(request.user.profile, 'age', None)
-        if is_18_plus and (not user_age or user_age < 18):
-            rooms = Room.objects.filter(is_private=False).order_by('-created_at')
-            return render(request, 'index.html', {
-                'rooms': rooms,
-                'error': 'СОЗДАТЬ КОМНАТЫ 18+ МОГУТ ТОЛЬКО ПОЛЬЗОВАТЕЛИ СТАРШЕ 18 ЛЕТ'
-            })
+        if not name:
+            return redirect('index')
 
         thumbnail_url = fetch_video_thumbnail(video_url)
-
-        new_room = Room.objects.create(
-            name=room_name,
+        room = Room.objects.create(
+            name=name,
+            host=request.user,
             description=description,
             video_url=video_url,
             thumbnail_url=thumbnail_url,
-            host=request.user,
+            max_participants=max(1, min(max_participants, 100)),
             is_18_plus=is_18_plus,
             is_private=is_private,
-            max_participants=max_participants
         )
-        Participant.objects.create(room=new_room, user=request.user)
-
-        unlocked = request.session.get('unlocked_rooms', [])
-        unlocked.append(str(new_room.uuid))
-        request.session['unlocked_rooms'] = unlocked
-
-        return redirect('room_detail', room_uuid=new_room.uuid)
+        Participant.objects.get_or_create(room=room, user=request.user)
+        return redirect('room_detail', room_uuid=room.uuid)
     return redirect('index')
 
 
 @login_required
-def leave_room(request, room_uuid):
-    room = get_object_or_404(Room, uuid=room_uuid)
-    if room.host == request.user:
-        room.delete()
-    else:
-        Participant.objects.filter(room=room, user=request.user).delete()
+def join_room(request):
+    if request.method == 'POST':
+        q = request.POST.get('query', '').strip()
+        if not q:
+            return redirect('index')
+        room = Room.objects.filter(access_code__iexact=q).first()
+        if not room:
+            try:
+                room = Room.objects.filter(uuid=q).first()
+            except Exception:
+                room = None
+        if not room:
+            room = Room.objects.filter(name__icontains=q, is_private=False).first()
+        if room:
+            return redirect('room_detail', room_uuid=room.uuid)
     return redirect('index')
 
 
+@login_required
+def room_detail(request, room_uuid):
+    room = get_object_or_404(Room, uuid=room_uuid)
+    if room.banned_users.filter(id=request.user.id).exists():
+        return redirect('index')
+
+    room.cleanup_stale_participants()
+    if room.participants.count() >= room.max_participants and not room.participants.filter(user=request.user).exists():
+        return redirect('index')
+
+    Participant.objects.update_or_create(
+        room=room, user=request.user, defaults={'last_seen': timezone.now()}
+    )
+    direct_stream_url = extract_direct_stream(room.video_url)
+    is_host = (room.host_id == request.user.id)
+
+    return render(request, 'room.html', {
+        'room': room,
+        'is_host': is_host,
+        'direct_stream_url': direct_stream_url,
+        'participants': room.participants.select_related('user').all(),
+        'messages': room.messages.all().order_by('created_at')[:100],
+    })
 @login_required
 def delete_room(request, room_uuid):
     room = get_object_or_404(Room, uuid=room_uuid)
-    if request.user.is_staff or request.user.is_superuser or room.host == request.user:
+    if room.host == request.user or request.user.is_staff or request.user.is_superuser:
         room.delete()
     return redirect('index')
 
@@ -165,174 +194,101 @@ def delete_room(request, room_uuid):
 @login_required
 def kick_user(request, room_uuid, user_id):
     room = get_object_or_404(Room, uuid=room_uuid)
-    if room.host == request.user and user_id != request.user.id:
-        target_user = get_object_or_404(User, id=user_id)
-        room.banned_users.add(target_user)
-        Participant.objects.filter(room=room, user=target_user).delete()
+    if room.host == request.user or request.user.is_staff or request.user.is_superuser:
+        target = get_object_or_404(User, id=user_id)
+        if target != room.host:
+            room.banned_users.add(target)
+            Participant.objects.filter(room=room, user=target).delete()
+            vs = dict(room.voice_state or {})
+            vs.pop(str(target.id), None)
+            room.voice_state = vs
+            room.save(update_fields=['voice_state'])
     return redirect('room_detail', room_uuid=room.uuid)
+
+
+@csrf_exempt
 @login_required
-def join_room(request):
-    if request.method == 'POST':
-        query = request.POST.get('query', '').strip()
-        room = None
-
-        if query:
-            room = Room.objects.filter(access_code__iexact=query).first()
-            if not room:
-                try:
-                    room = Room.objects.get(uuid=query)
-                except (Room.DoesNotExist, ValidationError, ValueError):
-                    room = Room.objects.filter(name__icontains=query, is_private=False).first()
-
-        if room:
-            if room.is_private and room.access_code.upper() == query.upper():
-                unlocked = request.session.get('unlocked_rooms', [])
-                if str(room.uuid) not in unlocked:
-                    unlocked.append(str(room.uuid))
-                    request.session['unlocked_rooms'] = unlocked
-            return redirect('room_detail', room_uuid=room.uuid)
+def leave_room(request, room_uuid):
+    room = Room.objects.filter(uuid=room_uuid).first()
+    if room:
+        if room.host_id == request.user.id:
+            room.delete()
         else:
-            rooms = Room.objects.filter(is_private=False).order_by('-created_at')
-            return render(request, 'index.html', {
-                'rooms': rooms,
-                'error': 'КОМНАТА НЕ НАЙДЕНА ИЛИ НЕВЕРНЫЙ КОД'
-            })
+            Participant.objects.filter(room=room, user=request.user).delete()
+            vs = dict(room.voice_state or {})
+            if str(request.user.id) in vs:
+                vs.pop(str(request.user.id), None)
+                room.voice_state = vs
+                room.save(update_fields=['voice_state'])
+    if request.method == 'POST':
+        return JsonResponse({'status': 'left'})
     return redirect('index')
 
 
-@login_required
-def room_detail(request, room_uuid):
-    room = get_object_or_404(Room, uuid=room_uuid)
-    rooms_list = Room.objects.filter(is_private=False).order_by('-created_at')
-
-    if room.banned_users.filter(id=request.user.id).exists():
-        return render(request, 'index.html', {
-            'rooms': rooms_list,
-            'error': 'ВЫ БЫЛИ ИСКЛЮЧЕНЫ ИЗ ЭТОЙ КОМНАТЫ СОЗДАТЕЛЕМ. ПОВТОРНЫЙ ВХОД ЗАПРЕЩЕН.'
-        })
-
-    unlocked = request.session.get('unlocked_rooms', [])
-    if room.is_private and room.host != request.user and str(room.uuid) not in unlocked:
-        return render(request, 'index.html', {
-            'rooms': rooms_list,
-            'error': 'ЭТА КОМНАТА ЧАСТНАЯ. ВОЙДИТЕ ПО СПЕЦИАЛЬНОМУ КОДУ ЧЕРЕЗ КНОПКУ «ПРИСОЕДИНИТЬСЯ».'
-        })
-
-    user_age = getattr(request.user.profile, 'age', None)
-    if room.is_18_plus and (not user_age or user_age < 18):
-        return render(request, 'index.html', {
-            'rooms': rooms_list,
-            'error': 'ДОСТУП ЗАПРЕЩЕН: ЭТА КОМНАТА ТОЛЬКО ДЛЯ ПОЛЬЗОВАТЕЛЕЙ 18+'
-        })
-
-    is_already_in = Participant.objects.filter(room=room, user=request.user).exists()
-    if not is_already_in and room.participants.count() >= room.max_participants:
-        return render(request, 'index.html', {
-            'rooms': rooms_list,
-            'error': f'КОМНАТА ПЕРЕПОЛНЕНА (МАКСИМУМ {room.max_participants} ЧЕЛ.)'
-        })
-
-    Participant.objects.get_or_create(room=room, user=request.user)
-
-    if request.method == 'POST':
-        text = request.POST.get('message_text', '').strip()
-        if text:
-            Message.objects.create(room=room, user=request.user.username, text=text)
-            return redirect('room_detail', room_uuid=room.uuid)
-
-    participants = room.participants.all()
-    messages = room.messages.all().order_by('created_at')
-    direct_stream_url = extract_direct_stream(room.video_url)
-
-    return render(request, 'room.html', {
-        'room': room,
-        'participants': participants,
-        'messages': messages,
-        'direct_stream_url': direct_stream_url
-    })
-
-
+@csrf_exempt
 @login_required
 def room_sync_api(request, room_uuid):
-    room = Room.objects.filter(uuid=room_uuid).first()
-    if not room:
-        return JsonResponse({'room_deleted': True})
+    with transaction.atomic():
+        room = Room.objects.select_for_update().filter(uuid=room_uuid).first()
+        if not room:
+            return JsonResponse({'status': 'closed', 'redirect': '/'})
+        if room.banned_users.filter(id=request.user.id).exists():
+            return JsonResponse({'status': 'banned', 'redirect': '/'})
 
-    if room.banned_users.filter(id=request.user.id).exists():
-        return JsonResponse({'kicked': True})
+        now_ts = time.time()
+        uid_str = str(request.user.id)
+        is_host = (room.host_id == request.user.id)
 
-    now = time.time()
-    voice_users = dict(room.voice_state or {})
-    signals = list(room.webrtc_signals or [])
+        Participant.objects.update_or_create(
+            room=room, user=request.user, defaults={'last_seen': timezone.now()}
+        )
+        room.cleanup_stale_participants()
 
-    cleaned_voice = {k: v for k, v in voice_users.items() if now - v.get('ts', 0) < 12}
-    cleaned_signals = [s for s in signals if now - s.get('ts', 0) < 15]
-    changed = (len(cleaned_voice) != len(voice_users)) or (len(cleaned_signals) != len(signals))
+        payload = {}
+        if request.method == 'POST':
+            try:
+                payload = json.loads(request.body.decode('utf-8'))
+            except Exception:
+                payload = {}
 
-    active_peer = request.GET.get('voice_peer', '').strip()
-    if active_peer:
-        cleaned_voice[active_peer] = {'username': request.user.username, 'ts': now}
-        changed = True
+        if is_host and 'video' in payload:
+            v = payload['video']
+            room.is_playing = bool(v.get('is_playing', room.is_playing))
+            room.current_time = float(v.get('current_time', room.current_time))
 
-    if request.method == 'POST':
-        try:
-            body = json.loads(request.body.decode('utf-8'))
-        except Exception:
-            body = {}
+        chat_text = (payload.get('chat_message') or '').strip()
+        if chat_text:
+            Message.objects.create(room=room, user=request.user.username, text=chat_text[:1000])
 
-        action_type = body.get('type')
+        vs = {k: v for k, v in (room.voice_state or {}).items() if now_ts - v.get('updated_at', 0) < 12}
+        v_act = payload.get('voice_action')
+        if v_act == 'join':
+            vs[uid_str] = {'username': request.user.username, 'muted': bool(payload.get('muted', False)), 'updated_at': now_ts}
+        elif v_act == 'leave':
+            vs.pop(uid_str, None)
+        elif uid_str in vs:
+            vs[uid_str]['updated_at'] = now_ts
+            if 'muted' in payload:
+                vs[uid_str]['muted'] = bool(payload['muted'])
+        room.voice_state = vs
 
-        if action_type == 'chat':
-            text = body.get('message', '').strip()
-            if text:
-                Message.objects.create(room=room, user=request.user.username, text=text)
+        sigs = [s for s in (room.webrtc_signals or []) if now_ts - s.get('ts', 0) < 15]
+        for s in (payload.get('signals') or []):
+            sigs.append({'from': uid_str, 'to': str(s.get('to')), 'type': s.get('type'), 'data': s.get('data'), 'ts': now_ts})
+        my_sigs = [s for s in sigs if s.get('to') == uid_str]
+        room.webrtc_signals = [s for s in sigs if s.get('to') != uid_str]
+        room.save()
 
-        elif action_type == 'video_state' and room.host == request.user:
-            room.is_playing = bool(body.get('is_playing', False))
-            room.current_time = float(body.get('time', 0))
-            changed = True
+        last_id = int(request.GET.get('last_msg_id') or payload.get('last_msg_id') or 0)
+        msgs = [{'id': m.id, 'user': m.user, 'text': m.text} for m in room.messages.filter(id__gt=last_id)[:50]]
+        parts = [{'id': p.user_id, 'username': p.user.username, 'is_host': p.user_id == room.host_id} for p in room.participants.select_related('user').all() if p.user]
 
-        elif action_type == 'voice_leave':
-            peer_id = body.get('peerId')
-            if peer_id in cleaned_voice:
-                del cleaned_voice[peer_id]
-                changed = True
-
-        elif action_type == 'webrtc_signal':
-            cleaned_signals.append({'ts': now, 'data': body.get('signal')})
-            changed = True
-
-        if changed:
-            room.voice_state = cleaned_voice
-            room.webrtc_signals = cleaned_signals
-            room.save(update_fields=['is_playing', 'current_time', 'voice_state', 'webrtc_signals'])
-
-        return JsonResponse({'ok': True})
-
-    if changed:
-        room.voice_state = cleaned_voice
-        room.webrtc_signals = cleaned_signals
-        room.save(update_fields=['voice_state', 'webrtc_signals'])
-
-    last_msg_id = int(request.GET.get('last_msg_id', 0))
-    new_msgs = list(room.messages.filter(id__gt=last_msg_id).order_by('id').values('id', 'user', 'text'))
-
-    since_ts = float(request.GET.get('since_ts', 0))
-    new_signals = [s['data'] for s in cleaned_signals if s['ts'] > since_ts]
-
-    participants_data = [
-        {'id': p.user.id, 'username': p.user.username, 'is_host': p.user_id == room.host_id}
-        for p in room.participants.select_related('user').all()
-    ]
-
-    return JsonResponse({
-        'kicked': False,
-        'room_deleted': False,
-        'server_ts': now,
-        'messages': new_msgs,
-        'video': {'is_playing': room.is_playing, 'time': room.current_time},
-        'voice_users': cleaned_voice,
-        'signals': new_signals,
-        'participants': participants_data,
-        'max_participants': room.max_participants,
-    })
+        return JsonResponse({
+            'status': 'ok',
+            'video': {'is_playing': room.is_playing, 'current_time': room.current_time},
+            'viewers_count': len(parts),
+            'participants': parts,
+            'voice_state': vs,
+            'signals': my_sigs,
+            'messages': msgs,
+        })

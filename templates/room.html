@@ -70,7 +70,6 @@
         }
         .btn-copy:hover { background: #d65a7b; color: #ffffff; }
         .icon-svg { width: 15px; height: 15px; fill: currentColor; flex-shrink: 0; }
-
         .main-grid { display: flex; gap: 24px; align-items: stretch; }
         .video-section { flex: 3; display: flex; flex-direction: column; }
 
@@ -167,7 +166,6 @@
             <a href="{% url 'leave_room' room.uuid %}" class="btn-leave" {% if user == room.host %}onclick="return confirm('Вы создатель комнаты. При выходе комната будет удалена. Продолжить?')"{% endif %}>← Выйти из комнаты</a>
         </div>
     </nav>
-
     <div class="room-wrapper">
         <div class="room-info-bar">
             <div>
@@ -184,6 +182,7 @@
                 <button type="button" class="btn-copy" id="copyIdBtn" onclick="copyRoomId()">Копировать</button>
             </div>
         </div>
+
         <div class="main-grid">
             <div class="video-section">
                 <div class="video-frame" id="player-container" data-video-url="{{ room.video_url|default:'' }}" data-direct-url="{{ direct_stream_url|default:'' }}">
@@ -256,10 +255,8 @@
 
     {{ room.uuid|json_script:"room-uuid" }}
     {% if user.is_authenticated %}
-        {{ user.username|json_script:"current-username" }}
         {{ user.id|json_script:"current-user-id" }}
     {% else %}
-        {{ "Гость"|json_script:"current-username" }}
         {{ 0|json_script:"current-user-id" }}
     {% endif %}
     {% if user == room.host %}
@@ -278,189 +275,107 @@
             });
         }
 
-        function getCookie(name) {
-            let cookieValue = null;
-            if (document.cookie && document.cookie !== '') {
-                const cookies = document.cookie.split(';');
-                for (let i = 0; i < cookies.length; i++) {
-                    const cookie = cookies[i].trim();
-                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        break;
-                    }
-                }
-            }
-            return cookieValue;
-        }
-
         document.addEventListener("DOMContentLoaded", () => {
             const roomUuid = JSON.parse(document.getElementById('room-uuid').textContent);
-            const currentUsername = JSON.parse(document.getElementById('current-username').textContent);
+            const myUserId = String(JSON.parse(document.getElementById('current-user-id').textContent));
             const isHost = JSON.parse(document.getElementById('is-host').textContent);
-            const myPeerId = currentUsername + '_' + Math.random().toString(36).substring(2, 8);
             const syncUrl = `/room/${roomUuid}/sync/`;
-            const csrfToken = getCookie('csrftoken');
+            const leaveUrl = `/room/${roomUuid}/leave/`;
 
             const playerContainer = document.getElementById('player-container');
-            const rawUrl = playerContainer ? playerContainer.getAttribute('data-video-url').trim() : '';
-            const directUrl = playerContainer ? playerContainer.getAttribute('data-direct-url').trim() : '';
-            const statusTextEl = document.getElementById('sync-status-text');
+            const videoUrl = playerContainer.dataset.videoUrl || '';
+            const directUrl = playerContainer.dataset.directUrl || '';
+            let videoEl = null, iframeEl = null, playerPlatform = 'none';
+            let viewerConnected = isHost;
+            let lastKnownTime = 0, isPlayerPlaying = false;
+            let latestHostState = { is_playing: false, current_time: 0 };
 
-            let videoElement = null;
-            let iframeElement = null;
-            let playerPlatform = 'mp4';
-            let lastKnownTime = 0;
-            let isPlayerPlaying = false;
-            let lastMsgId = {{ messages.last.id|default:0 }};
-            let lastSignalTs = 0;
-
-            async function postSync(payload) {
-                try {
-                    await fetch(syncUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
-                        body: JSON.stringify(payload)
-                    });
-                } catch (e) {}
+            function detectAndBuildIframe(url) {
+                if (url.includes('rutube.ru/video/')) {
+                    playerPlatform = 'rutube';
+                    const m = url.match(/rutube\.ru\/video\/([a-zA-Z0-9]+)/);
+                    return m ? `https://rutube.ru{m}` : url;
+                }
+                if (url.includes('://vk.com') || url.includes('vkvideo.ru/video')) {
+                    playerPlatform = 'vk';
+                    const m = url.match(/video(-?\d+)_(\d+)/);
+                    return m ? `https://://vk.com_ext.php?oid=${m}&id=${m}&hd=2&js_api=1` : url;
+                }
+                if (url.includes('youtube.com') || url.includes('youtu.be')) {
+                    playerPlatform = 'youtube';
+                    const m = url.match(/(?:v=|youtu\.be\/|shorts\/)([a-zA-Z0-9_-]{11})/);
+                    return m ? `https://youtube.com{m}?enablejsapi=1` : url;
+                }
+                return url;
             }
 
-            if (playerContainer && (directUrl || rawUrl)) {
-                if (directUrl) {
-                    playerContainer.innerHTML = `<video id="video-player" controls playsinline></video>`;
-                    videoElement = document.getElementById('video-player');
-                    playerPlatform = 'direct';
-                    if (statusTextEl) {
-                        statusTextEl.textContent = isHost
-                            ? 'Zetroom Direct Stream • Вы хост'
-                            : 'Zetroom Direct Stream • Синхронизация с хостом';
-                    }
-
-                    if (directUrl.includes('.m3u8') && typeof Hls !== 'undefined' && Hls.isSupported()) {
-                        const hls = new Hls();
-                        hls.loadSource(directUrl);
-                        hls.attachMedia(videoElement);
-                    } else {
-                        videoElement.src = directUrl;
-                    }
-                } else {
-                    let embedUrl = null;
-                    const slash = String.fromCharCode(47);
-
-                    if (rawUrl.includes('vk.com') || rawUrl.includes('vkvideo.ru')) {
-                        const cleanVk = rawUrl.split('video').pop().split('?').at(0);
-                        const parts = cleanVk.split('_');
-                        if (parts.length >= 2) {
-                            embedUrl = "https:" + slash + slash + "vk.com" + slash + "video_ext.php?oid=" + parts.at(0) + "&id=" + parts.at(1) + "&hd=2&js_api=1";
-                            playerPlatform = 'vk';
-                        }
-                    } else if (rawUrl.includes('rutube.ru')) {
-                        const rtParts = rawUrl.replace(/\/$/, '').split(slash);
-                        const rtId = rtParts.pop().split('?').at(0);
-                        if (rtId) {
-                            embedUrl = "https:" + slash + slash + "rutube.ru" + slash + "play" + slash + "embed" + slash + rtId;
-                            playerPlatform = 'rutube';
-                        }
-                    } else if (rawUrl.includes('youtube.com') || rawUrl.includes('youtu.be')) {
-                        let ytId = '';
-                        if (rawUrl.includes('youtu.be' + slash)) {
-                            ytId = rawUrl.split('youtu.be' + slash).pop().split('?').at(0);
-                        } else if (rawUrl.includes('v=')) {
-                            ytId = rawUrl.split('v=').pop().split('&').at(0);
-                        } else if (rawUrl.includes('shorts' + slash)) {
-                            ytId = rawUrl.split('shorts' + slash).pop().split('?').at(0);
-                        }
-                        if (ytId) {
-                            embedUrl = "https:" + slash + slash + "://youtube.com" + slash + "embed" + slash + ytId + "?enablejsapi=1";
-                            playerPlatform = 'youtube';
-                        }
-                    }
-
-                    if (embedUrl) {
-                        playerContainer.innerHTML = `<iframe id="sync-iframe" src="${embedUrl}" referrerpolicy="strict-origin-when-cross-origin" allow="autoplay; encrypted-media; fullscreen; picture-in-picture" allowfullscreen></iframe>`;
-                        iframeElement = document.getElementById('sync-iframe');
-                    } else {
-                        playerContainer.innerHTML = `<video id="video-player" controls src="${rawUrl}"></video>`;
-                        videoElement = document.getElementById('video-player');
-                    }
-                    if (statusTextEl) {
-                        statusTextEl.textContent = isHost
-                            ? 'Zetroom SYNC • Вы хост (управляете просмотром)'
-                            : 'Zetroom SYNC • Синхронизация с хостом';
-                    }
+            function sendIframeCommand(cmd, timeVal) {
+                if (!iframeEl || !iframeEl.contentWindow) return;
+                if (playerPlatform === 'rutube') {
+                    if (typeof timeVal === 'number') iframeEl.contentWindow.postMessage(JSON.stringify({ type: 'player:setCurrentTime', data: { time: timeVal } }), '*');
+                    if (cmd === 'play') iframeEl.contentWindow.postMessage(JSON.stringify({ type: 'player:play', data: {} }), '*');
+                    if (cmd === 'pause') iframeEl.contentWindow.postMessage(JSON.stringify({ type: 'player:pause', data: {} }), '*');
+                } else if (playerPlatform === 'vk') {
+                    if (typeof timeVal === 'number') iframeEl.contentWindow.postMessage(JSON.stringify({ method: 'seek', time: timeVal }), '*');
+                    if (cmd === 'play') iframeEl.contentWindow.postMessage(JSON.stringify({ method: 'play' }), '*');
+                    if (cmd === 'pause') iframeEl.contentWindow.postMessage(JSON.stringify({ method: 'pause' }), '*');
                 }
             }
-            if (isHost) {
-                const pushHostState = () => {
-                    const t = videoElement ? videoElement.currentTime : lastKnownTime;
-                    const p = videoElement ? !videoElement.paused : isPlayerPlaying;
-                    postSync({ type: 'video_state', is_playing: p, time: t });
-                };
 
-                if (videoElement) {
-                    videoElement.addEventListener('play', pushHostState);
-                    videoElement.addEventListener('pause', pushHostState);
-                    videoElement.addEventListener('seeked', pushHostState);
+            function attachViewerOverlay(onConnect) {
+                if (isHost) return;
+                const overlay = document.createElement('div');
+                overlay.style.cssText = 'position:absolute;inset:0;background:rgba(30,22,26,0.92);display:flex;flex-direction:column;justify-content:center;align-items:center;gap:14px;z-index:20;';
+                overlay.innerHTML = `<div style="font-family:'Oswald',sans-serif;color:#f8c8d4;font-size:1.3rem;letter-spacing:1px;text-transform:uppercase;">ЭФИР ГОТОВ К СИНХРОНИЗАЦИИ</div><button type="button" id="btn-connect-stream" style="background:#d65a7b;color:#fff;border:2px solid #fff;padding:12px 26px;font-family:'Oswald',sans-serif;font-size:1rem;letter-spacing:1px;text-transform:uppercase;cursor:pointer;">ПОДКЛЮЧИТЬСЯ К ЭФИРУ</button>`;
+                playerContainer.appendChild(overlay);
+                document.getElementById('btn-connect-stream').onclick = () => { viewerConnected = true; overlay.remove(); onConnect(); };
+            }
+
+            if (directUrl) {
+                playerPlatform = 'direct';
+                videoEl = document.createElement('video');
+                videoEl.controls = isHost; videoEl.playsInline = true;
+                playerContainer.innerHTML = ''; playerContainer.appendChild(videoEl);
+                if (directUrl.includes('.m3u8') && window.Hls && Hls.isSupported()) {
+                    const hls = new Hls(); hls.loadSource(directUrl); hls.attachMedia(videoEl);
+                } else { videoEl.src = directUrl; }
+                attachViewerOverlay(() => {
+                    videoEl.controls = true;
+                    videoEl.currentTime = latestHostState.current_time || 0;
+                    if (latestHostState.is_playing) videoEl.play().catch(() => {});
+                });
+            } else if (videoUrl) {
+                iframeEl = document.createElement('iframe');
+                iframeEl.src = detectAndBuildIframe(videoUrl);
+                iframeEl.allow = 'autoplay; fullscreen; picture-in-picture'; iframeEl.allowFullscreen = true;
+                playerContainer.innerHTML = ''; playerContainer.appendChild(iframeEl);
+                attachViewerOverlay(() => {
+                    sendIframeCommand(latestHostState.is_playing ? 'play' : 'pause', latestHostState.current_time || 0);
+                });
+            }
+            window.addEventListener('message', (event) => {
+                if (!iframeEl) return;
+                let msg = event.data;
+                if (typeof msg === 'string') { try { msg = JSON.parse(msg); } catch (e) { return; } }
+                if (!msg || typeof msg !== 'object') return;
+                if (playerPlatform === 'rutube') {
+                    if (msg.type === 'player:currentTime' && msg.data) lastKnownTime = msg.data.time;
+                    else if (msg.type === 'player:changeState' && msg.data) {
+                        const st = String(msg.data.state || '').toLowerCase();
+                        if (st === 'playing' || st === 'play') { isPlayerPlaying = true; if (isHost) syncTick(); }
+                        else if (st === 'paused' || st === 'pause' || st === 'stopped') { isPlayerPlaying = false; if (isHost) syncTick(); }
+                    }
+                } else if (playerPlatform === 'vk') {
+                    if (msg.event === 'timeupdate' && typeof msg.time === 'number') lastKnownTime = msg.time;
+                    else if (msg.event === 'play') { isPlayerPlaying = true; if (isHost) syncTick(); }
+                    else if (msg.event === 'pause') { isPlayerPlaying = false; if (isHost) syncTick(); }
                 }
+            });
 
-                window.addEventListener('message', (event) => {
-                    if (!iframeElement) return;
-                    let msg = event.data;
-                    if (typeof msg === 'string') {
-                        try { msg = JSON.parse(msg); } catch (e) { return; }
-                    }
-                    if (!msg || typeof msg !== 'object') return;
+            window.addEventListener('beforeunload', () => navigator.sendBeacon(leaveUrl, new Blob(['{}'], { type: 'application/json' })));
 
-                    if (playerPlatform === 'rutube') {
-                        if (msg.type === 'player:currentTime' && msg.data) {
-                            lastKnownTime = msg.data.time;
-                        } else if (msg.type === 'player:changeState' && msg.data) {
-                            const st = String(msg.data.state || '').toLowerCase();
-                            if (st === 'playing' || st === 'play') { isPlayerPlaying = true; pushHostState(); }
-                            else if (st === 'paused' || st === 'pause' || st === 'stopped') { isPlayerPlaying = false; pushHostState(); }
-                        }
-                    } else if (playerPlatform === 'vk') {
-                        if (msg.event === 'timeupdate' && typeof msg.time === 'number') {
-                            lastKnownTime = msg.time;
-                        } else if (msg.event === 'play') { isPlayerPlaying = true; pushHostState(); }
-                        else if (msg.event === 'pause') { isPlayerPlaying = false; pushHostState(); }
-                    }
-                });
-
-                setInterval(pushHostState, 5000);
-            } else {
-                window.addEventListener('message', (event) => {
-                    if (!iframeElement) return;
-                    let msg = event.data;
-                    if (typeof msg === 'string') {
-                        try { msg = JSON.parse(msg); } catch (e) { return; }
-                    }
-                    if (!msg || typeof msg !== 'object') return;
-                    if (playerPlatform === 'rutube' && msg.type === 'player:currentTime' && msg.data) {
-                        lastKnownTime = msg.data.time;
-                    } else if (playerPlatform === 'vk' && msg.event === 'timeupdate' && typeof msg.time === 'number') {
-                        lastKnownTime = msg.time;
-                    }
-                });
-            }
-
-            const chatForm = document.getElementById('chat-form');
-            const chatInput = document.getElementById('chat-input');
-
-            if (chatForm && chatInput) {
-                chatForm.addEventListener('submit', async (e) => {
-                    e.preventDefault();
-                    const text = chatInput.value.trim();
-                    if (!text) return;
-                    chatInput.value = '';
-                    await postSync({ type: 'chat', message: text });
-                    pollRoomState();
-                });
-            }
-
-            let localStream = null;
-            let isVoiceActive = false;
-            let isMuted = false;
-            const peers = {};
+            let localStream = null, isVoiceActive = false, isMuted = false, pendingVoiceAction = null;
+            const peers = {}, outgoingSignals = [];
             const rtcConfig = {
                 iceServers: [
                     { urls: 'stun:://google.com' },
@@ -473,38 +388,44 @@
             const btnMuteToggle = document.getElementById('btn-mute-toggle');
             const voiceStatusText = document.getElementById('voice-status-text');
             const remoteAudios = document.getElementById('remote-audios');
-
             const micOnIcon = `<svg class="icon-svg" viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5-3c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>`;
             const callEndIcon = `<svg class="icon-svg" viewBox="0 0 24 24"><path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-.98.49-1.87 1.12-2.66 1.85-.18.18-.43.28-.7.28-.28 0-.53-.11-.71-.29L.29 13.08c-.18-.17-.29-.42-.29-.7 0-.28.11-.53.29-.71C3.34 8.78 7.46 7 12 7s8.66 1.78 11.71 4.67c.18.18.29.43.29.71 0 .28-.11.53-.29.71l-2.48 2.48c-.18.18-.43.29-.71.29-.27 0-.52-.11-.7-.28-.79-.74-1.69-1.36-2.67-1.85-.33-.16-.56-.5-.56-.9v-3.1C15.15 9.25 13.6 9 12 9z"/></svg>`;
             const micOffIcon = `<svg class="icon-svg" viewBox="0 0 24 24"><path d="M19 11h-1.7c0 .74-.16 1.43-.43 2.05l1.23 1.23c.56-.98.9-2.09.9-3.28zm-4.02.17c0-.06.02-.11.02-.17V5c0-1.66-1.34-3-3-3S9 3.34 9 5v.18l5.98 5.99zM4.27 3L3 4.27l6.01 6.01V11c0 1.66 1.33 3 2.99 3 .22 0 .44-.03.65-.08l1.66 1.66c-.71.33-1.5.52-2.31.52-2.76 0-5.3-2.1-5.3-5.1H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c.91-.13 1.77-.45 2.54-.9L19.73 21 21 19.73 4.27 3z"/></svg>`;
 
+            function getOrCreatePeer(remoteId, initiator) {
+                if (peers[remoteId]) return peers[remoteId];
+                const pc = new RTCPeerConnection(rtcConfig);
+                peers[remoteId] = pc;
+                if (localStream) localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
+                pc.onicecandidate = e => { if (e.candidate) outgoingSignals.push({ to: remoteId, type: 'ice', data: e.candidate }); };
+                pc.ontrack = e => {
+                    let a = document.getElementById('audio-' + remoteId);
+                    if (!a) { a = document.createElement('audio'); a.id = 'audio-' + remoteId; a.autoplay = true; remoteAudios.appendChild(a); }
+                    a.srcObject = e.streams; a.play().catch(() => {});
+                };
+                if (initiator) pc.createOffer().then(o => pc.setLocalDescription(o)).then(() => outgoingSignals.push({ to: remoteId, type: 'offer', data: pc.localDescription }));
+                return pc;
+            }
+
             btnVoiceToggle.addEventListener('click', async () => {
                 if (!isVoiceActive) {
                     try {
-                        localStream = await navigator.mediaDevices.getUserMedia({
-                            audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
-                            video: false
-                        });
-                        isVoiceActive = true;
+                        localStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }, video: false });
+                        isVoiceActive = true; pendingVoiceAction = 'join';
                         btnVoiceToggle.innerHTML = `${callEndIcon}<span>Выйти из голоса</span>`;
-                        btnVoiceToggle.style.background = '#c93b5b';
-                        btnVoiceToggle.style.color = '#ffffff';
+                        btnVoiceToggle.style.background = '#c93b5b'; btnVoiceToggle.style.color = '#ffffff';
                         btnMuteToggle.style.display = 'inline-flex';
-                        pollRoomState();
-                    } catch (err) {
-                        alert('Нет доступа к микрофону: ' + err.message);
-                    }
+                        syncTick();
+                    } catch (err) { alert('Нет доступа к микрофону: ' + err.message); }
                 } else {
-                    isVoiceActive = false;
+                    isVoiceActive = false; pendingVoiceAction = 'leave';
                     if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
                     Object.keys(peers).forEach(id => { peers[id].close(); delete peers[id]; });
                     remoteAudios.innerHTML = '';
                     btnVoiceToggle.innerHTML = `${micOnIcon}<span>Войти в голос</span>`;
-                    btnVoiceToggle.style.background = '#1e161a';
-                    btnVoiceToggle.style.color = '#f8c8d4';
+                    btnVoiceToggle.style.background = '#1e161a'; btnVoiceToggle.style.color = '#f8c8d4';
                     btnMuteToggle.style.display = 'none';
-                    await postSync({ type: 'voice_leave', peerId: myPeerId });
-                    pollRoomState();
+                    syncTick();
                 }
             });
 
@@ -513,158 +434,96 @@
                 isMuted = !isMuted;
                 localStream.getAudioTracks().forEach(t => t.enabled = !isMuted);
                 btnMuteToggle.innerHTML = isMuted ? `${micOnIcon}<span>Вкл. мик</span>` : `${micOffIcon}<span>Выкл. мик</span>`;
+                syncTick();
             });
-            function createPeerConnection(remotePeerId) {
-                if (peers[remotePeerId]) peers[remotePeerId].close();
-                const pc = new RTCPeerConnection(rtcConfig);
-                peers[remotePeerId] = pc;
-                if (localStream) localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
 
-                pc.onicecandidate = (e) => {
-                    if (e.candidate) {
-                        postSync({ type: 'webrtc_signal', signal: { type: 'ice', from: myPeerId, to: remotePeerId, candidate: e.candidate } });
-                    }
-                };
-                pc.ontrack = (e) => {
-                    let audio = document.getElementById(`audio-${remotePeerId}`);
-                    if (!audio) {
-                        audio = document.createElement('audio');
-                        audio.id = `audio-${remotePeerId}`;
-                        audio.autoplay = true;
-                        remoteAudios.appendChild(audio);
-                    }
-                    audio.srcObject = e.streams.at(0);
-                    audio.play().catch(() => {});
-                };
-                return pc;
-            }
+            let lastMsgId = 0, pendingChatMsg = '';
+            const chatBox = document.getElementById('chat-box');
+            document.getElementById('chat-form').addEventListener('submit', e => {
+                e.preventDefault();
+                const inp = document.getElementById('chat-input');
+                if (!inp.value.trim()) return;
+                pendingChatMsg = inp.value.trim(); inp.value = ''; syncTick();
+            });
 
-            async function handleWebRtcSignal(sig) {
-                if (!sig || sig.from === myPeerId || (sig.to && sig.to !== myPeerId) || !isVoiceActive) return;
-                const remoteId = sig.from;
+            async function syncTick() {
+                const body = { last_msg_id: lastMsgId, signals: outgoingSignals.splice(0, outgoingSignals.length) };
+                if (isHost) {
+                    if (videoEl) body.video = { is_playing: !videoEl.paused, current_time: videoEl.currentTime || 0 };
+                    else if (iframeEl) body.video = { is_playing: isPlayerPlaying, current_time: lastKnownTime || 0 };
+                }
+                if (pendingChatMsg) { body.chat_message = pendingChatMsg; pendingChatMsg = ''; }
+                if (pendingVoiceAction) { body.voice_action = pendingVoiceAction; pendingVoiceAction = null; }
+                if (isVoiceActive) body.muted = isMuted;
+
                 try {
-                    if (sig.type === 'offer') {
-                        const pc = createPeerConnection(remoteId);
-                        await pc.setRemoteDescription(new RTCSessionDescription(sig.offer));
-                        const answer = await pc.createAnswer();
-                        await pc.setLocalDescription(answer);
-                        postSync({ type: 'webrtc_signal', signal: { type: 'answer', from: myPeerId, to: remoteId, answer } });
-                    } else if (sig.type === 'answer' && peers[remoteId]) {
-                        await peers[remoteId].setRemoteDescription(new RTCSessionDescription(sig.answer));
-                    } else if (sig.type === 'ice' && peers[remoteId]) {
-                        await peers[remoteId].addIceCandidate(new RTCIceCandidate(sig.candidate));
-                    }
-                } catch (err) {}
-            }
+                    const res = await fetch(syncUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+                    if (!res.ok) return;
+                    const data = await res.json();
+                    if (data.status === 'closed') { alert('Создатель комнаты завершил сессию.'); window.location.href = '/'; return; }
+                    if (data.status === 'banned') { alert('Создатель комнаты исключил вас.'); window.location.href = '/'; return; }
 
-            async function pollRoomState() {
-                try {
-                    const peerParam = isVoiceActive ? `&voice_peer=${encodeURIComponent(myPeerId)}` : '';
-                    const resp = await fetch(`${syncUrl}?last_msg_id=${lastMsgId}&since_ts=${lastSignalTs}${peerParam}`);
-                    if (!resp.ok) return;
-                    const data = await resp.json();
-
-                    if (data.room_deleted) {
-                        alert('Создатель комнаты завершил сессию.');
-                        window.location.href = '/';
-                        return;
-                    }
-                    if (data.kicked) {
-                        alert('Создатель комнаты исключил вас.');
-                        window.location.href = '/';
-                        return;
-                    }
-                    if (data.server_ts) lastSignalTs = data.server_ts;
-
-                    if (data.participants) {
-                        const counterEl = document.getElementById('participants-counter');
-                        const listEl = document.getElementById('participants-list');
-                        if (counterEl) counterEl.textContent = `${data.participants.length} / ${data.max_participants}`;
-                        if (listEl) {
-                            listEl.innerHTML = data.participants.map(p => {
-                                const hostTag = p.is_host ? `<span class="host-badge">ХОСТ</span>` : '';
-                                const kickBtn = (isHost && !p.is_host)
-                                    ? `<a href="/room/${roomUuid}/kick/${p.id}/" class="btn-kick" onclick="return confirm('Кикнуть ${p.username}?')">Кик</a>`
-                                    : '';
-                                return `<li class="participant-tag"><span>${p.username}</span>${hostTag}${kickBtn}</li>`;
-                            }).join('');
+                    latestHostState = data.video || latestHostState;
+                    if (!isHost && viewerConnected && data.video) {
+                        if (videoEl) {
+                            if (Math.abs((videoEl.currentTime || 0) - data.video.current_time) > 2.2) videoEl.currentTime = data.video.current_time;
+                            if (data.video.is_playing && videoEl.paused) videoEl.play().catch(() => {});
+                            if (!data.video.is_playing && !videoEl.paused) videoEl.pause();
+                        } else if (iframeEl) {
+                            const needSeek = Math.abs((lastKnownTime || 0) - data.video.current_time) > 3.5 ? data.video.current_time : null;
+                            sendIframeCommand(data.video.is_playing ? 'play' : 'pause', needSeek);
                         }
                     }
 
-                    if (data.messages && data.messages.length > 0) {
-                        const chatBox = document.getElementById('chat-box');
-                        const emptyMsg = document.getElementById('empty-chat-msg');
-                        if (emptyMsg) emptyMsg.remove();
-                        data.messages.forEach(m => {
-                            lastMsgId = Math.max(lastMsgId, m.id);
-                            const div = document.createElement('div');
-                            div.className = 'message-item';
-                            div.innerHTML = `<span class="message-author">${m.user}:</span> ${m.text}`;
-                            chatBox.appendChild(div);
-                        });
-                        chatBox.scrollTop = chatBox.scrollHeight;
-                    }
+                    document.getElementById('participants-counter').textContent = `${data.viewers_count} / {{ room.max_participants }}`;
+                    document.getElementById('participants-list').innerHTML = (data.participants || []).map(p =>
+                        `<li class="participant-tag"><span>${p.username}</span>${p.is_host ? '<span class="host-badge">ХОСТ</span>' : ''}${isHost && !p.is_host ? `<a href="/room/${roomUuid}/kick/${p.id}/" class="btn-kick" onclick="return confirm('Кикнуть ${p.username}?')">Кик</a>` : ''}</li>`
+                    ).join('');
 
-                    if (!isHost && data.video) {
-                        const v = data.video;
-                        if (videoElement) {
-                            if (Math.abs(videoElement.currentTime - v.time) > 1.5) videoElement.currentTime = v.time;
-                            if (v.is_playing && videoElement.paused) videoElement.play().catch(() => {});
-                            else if (!v.is_playing && !videoElement.paused) videoElement.pause();
-                        } else if (iframeElement && iframeElement.contentWindow) {
-                            if (playerPlatform === 'rutube') {
-                                if (Math.abs(lastKnownTime - v.time) > 2.0) {
-                                    iframeElement.contentWindow.postMessage(JSON.stringify({ type: 'player:setCurrentTime', data: { time: v.time } }), '*');
-                                    lastKnownTime = v.time;
-                                }
-                                if (v.is_playing && !isPlayerPlaying) {
-                                    iframeElement.contentWindow.postMessage(JSON.stringify({ type: 'player:play', data: {} }), '*');
-                                    isPlayerPlaying = true;
-                                } else if (!v.is_playing && isPlayerPlaying) {
-                                    iframeElement.contentWindow.postMessage(JSON.stringify({ type: 'player:pause', data: {} }), '*');
-                                    isPlayerPlaying = false;
-                                }
-                            } else if (playerPlatform === 'vk') {
-                                if (Math.abs(lastKnownTime - v.time) > 2.0) {
-                                    iframeElement.contentWindow.postMessage(JSON.stringify({ method: 'seek', time: v.time }), '*');
-                                    lastKnownTime = v.time;
-                                }
-                                if (v.is_playing && !isPlayerPlaying) {
-                                    iframeElement.contentWindow.postMessage(JSON.stringify({ method: 'play' }), '*');
-                                    isPlayerPlaying = true;
-                                } else if (!v.is_playing && isPlayerPlaying) {
-                                    iframeElement.contentWindow.postMessage(JSON.stringify({ method: 'pause' }), '*');
-                                    isPlayerPlaying = false;
-                                }
-                            }
-                        }
-                    }
-
-                    const vUsers = data.voice_users || {};
-                    const names = Object.values(vUsers).map(u => u.username);
-                    voiceStatusText.textContent = names.length > 0
-                        ? `В голосовом чате: ${names.join(', ')}`
-                        : 'Голосовой чат пуст';
+                    const vUsers = Object.entries(data.voice_state || {});
+                    voiceStatusText.textContent = vUsers.length ? 'В голосе: ' + vUsers.map(([_, u]) => u.username + (u.muted ? ' [MUTE]' : '')).join(', ') : 'Голосовой чат пуст';
 
                     if (isVoiceActive) {
-                        for (const remotePeerId of Object.keys(vUsers)) {
-                            if (remotePeerId !== myPeerId && !peers[remotePeerId] && myPeerId < remotePeerId) {
-                                const pc = createPeerConnection(remotePeerId);
-                                const offer = await pc.createOffer();
-                                await pc.setLocalDescription(offer);
-                                postSync({ type: 'webrtc_signal', signal: { type: 'offer', from: myPeerId, to: remotePeerId, offer } });
+                                            if (isVoiceActive) {
+                        vUsers.forEach(entry => {
+                            const uid = entry.at(0);
+                            if (uid !== myUserId && !peers[uid]) {
+                                getOrCreatePeer(uid, Number(myUserId) > Number(uid));
+                            }
+                        });
+                        for (const sig of (data.signals || [])) {
+                            const pc = getOrCreatePeer(sig.from, false);
+                            if (sig.type === 'offer') {
+                                await pc.setRemoteDescription(new RTCSessionDescription(sig.data));
+                                const ans = await pc.createAnswer();
+                                await pc.setLocalDescription(ans);
+                                outgoingSignals.push({ to: sig.from, type: 'answer', data: pc.localDescription });
+                            } else if (sig.type === 'answer') {
+                                await pc.setRemoteDescription(new RTCSessionDescription(sig.data));
+                            } else if (sig.type === 'ice') {
+                                await pc.addIceCandidate(new RTCIceCandidate(sig.data));
                             }
                         }
                     }
 
-                    if (data.signals) {
-                        for (const sig of data.signals) await handleWebRtcSignal(sig);
-                    }
+                    (data.messages || []).forEach(m => {
+                        lastMsgId = Math.max(lastMsgId, m.id);
+                        const empty = document.getElementById('empty-chat-msg');
+                        if (empty) empty.remove();
+                        const div = document.createElement('div');
+                        div.className = 'message-item';
+                        div.innerHTML = `<span class="message-author">${m.user}:</span> ${m.text}`;
+                        chatBox.appendChild(div);
+                        chatBox.scrollTop = chatBox.scrollHeight;
+                    });
                 } catch (e) {}
             }
 
-            setInterval(pollRoomState, 3500);
-            pollRoomState();
+            if (isHost && videoEl) {
+                ['play', 'pause', 'seeked'].forEach(ev => videoEl.addEventListener(ev, syncTick));
+            }
+            syncTick();
+            setInterval(syncTick, 3000);
         });
     </script>
 </body>
