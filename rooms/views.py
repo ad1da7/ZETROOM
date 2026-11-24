@@ -1,10 +1,13 @@
 import re
 import json
+import time
 import urllib.request
 from django.shortcuts import render, redirect, get_object_or_404
 from django.core.exceptions import ValidationError
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
+from django.http import JsonResponse
+from django.core.cache import cache
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 from .models import Room, Participant, Message
@@ -16,7 +19,6 @@ except ImportError:
 
 
 def extract_direct_stream(video_url):
-    """Извлекает прямую ссылку на поток (.mp4 или .m3u8) как в Rave через yt-dlp."""
     if not video_url or not yt_dlp:
         return ''
     if video_url.endswith('.mp4') or video_url.endswith('.m3u8'):
@@ -88,8 +90,6 @@ def index(request):
 
 def all_rooms(request):
     return redirect('index')
-
-
 @login_required
 def create_room(request):
     if request.method == 'POST':
@@ -118,7 +118,7 @@ def create_room(request):
             rooms = Room.objects.filter(is_private=False).order_by('-created_at')
             return render(request, 'index.html', {
                 'rooms': rooms,
-                'error': 'СОЗДАВАТЬ КОМНАТЫ 18+ МОГУТ ТОЛЬКО ПОЛЬЗОВАТЕЛИ СТАРШЕ 18 ЛЕТ'
+                'error': 'СОЗДАТЬ КОМНАТЫ 18+ МОГУТ ТОЛЬКО ПОЛЬЗОВАТЕЛИ СТАРШЕ 18 ЛЕТ'
             })
 
         thumbnail_url = fetch_video_thumbnail(video_url)
@@ -172,8 +172,6 @@ def kick_user(request, room_uuid, user_id):
             }
         )
     return redirect('room_detail', room_uuid=room.uuid)
-
-
 @login_required
 def join_room(request):
     if request.method == 'POST':
@@ -253,4 +251,76 @@ def room_detail(request, room_uuid):
         'participants': participants,
         'messages': messages,
         'direct_stream_url': direct_stream_url
+    })
+
+
+@login_required
+def room_sync_api(request, room_uuid):
+    room = get_object_or_404(Room, uuid=room_uuid)
+
+    if room.banned_users.filter(id=request.user.id).exists():
+        return JsonResponse({'kicked': True})
+
+    cache_key_video = f"room_video_{room.uuid}"
+    cache_key_voice = f"room_voice_{room.uuid}"
+    cache_key_signals = f"room_signals_{room.uuid}"
+
+    voice_users = cache.get(cache_key_voice, {})
+    signals = cache.get(cache_key_signals, [])
+    now = time.time()
+
+    voice_users = {k: v for k, v in voice_users.items() if now - v['ts'] < 8}
+
+    if request.method == 'POST':
+        try:
+            body = json.loads(request.body.decode('utf-8'))
+        except Exception:
+            body = {}
+
+        action_type = body.get('type')
+
+        if action_type == 'chat':
+            text = body.get('message', '').strip()
+            if text:
+                Message.objects.create(room=room, user=request.user.username, text=text)
+
+        elif action_type == 'video_state' and room.host == request.user:
+            cache.set(cache_key_video, {
+                'is_playing': body.get('is_playing', False),
+                'time': float(body.get('time', 0)),
+                'updated_at': now
+            }, timeout=3600)
+
+        elif action_type == 'voice_ping':
+            peer_id = body.get('peerId')
+            if peer_id:
+                voice_users[peer_id] = {'username': request.user.username, 'ts': now}
+                cache.set(cache_key_voice, voice_users, timeout=60)
+
+        elif action_type == 'voice_leave':
+            peer_id = body.get('peerId')
+            if peer_id in voice_users:
+                del voice_users[peer_id]
+                cache.set(cache_key_voice, voice_users, timeout=60)
+
+        elif action_type == 'webrtc_signal':
+            signals.append({'ts': now, 'data': body.get('signal')})
+            signals = [s for s in signals if now - s['ts'] < 15]
+            cache.set(cache_key_signals, signals, timeout=60)
+
+        return JsonResponse({'ok': True})
+
+    last_msg_id = int(request.GET.get('last_msg_id', 0))
+    new_msgs = list(room.messages.filter(id__gt=last_msg_id).order_by('id').values('id', 'user', 'text'))
+
+    since_ts = float(request.GET.get('since_ts', 0))
+    new_signals = [s['data'] for s in signals if s['ts'] > since_ts]
+
+    return JsonResponse({
+        'kicked': False,
+        'server_ts': now,
+        'messages': new_msgs,
+        'video': cache.get(cache_key_video),
+        'voice_users': voice_users,
+        'signals': new_signals,
     })
