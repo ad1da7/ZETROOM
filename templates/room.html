@@ -22,6 +22,32 @@
             overflow-x: hidden;
         }
 
+        /* --- ТОСТ УВЕДОМЛЕНИЕ --- */
+        #toast {
+            visibility: hidden;
+            min-width: 250px;
+            background-color: #1e161a;
+            color: #f8c8d4;
+            text-align: center;
+            border: 2px solid #d65a7b;
+            padding: 16px;
+            position: fixed;
+            z-index: 9999;
+            left: 50%;
+            bottom: 30px;
+            transform: translateX(-50%);
+            font-family: 'Oswald', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            opacity: 0;
+            transition: opacity 0.3s, bottom 0.3s;
+        }
+        #toast.show {
+            visibility: visible;
+            opacity: 1;
+            bottom: 50px;
+        }
+
         .navbar {
             position: sticky; top: 0; z-index: 100; background-color: #1e161a;
             border-bottom: 3px solid #d65a7b; padding: 0 32px; height: 68px;
@@ -43,8 +69,11 @@
             background: #d65a7b; color: #ffffff; border: 1px solid #d65a7b;
             padding: 9px 18px; text-decoration: none; font-family: 'Oswald', sans-serif;
             text-transform: uppercase; letter-spacing: 1px; font-size: 0.9rem; transition: 0.15s;
+            display: flex; align-items: center; justify-content: center;
         }
         .btn-leave:hover { background: #b84463; border-color: #b84463; }
+        .btn-leave .text { display: inline; }
+        .btn-leave .icon { display: none; font-size: 1.2rem; font-weight: bold; }
 
         .room-wrapper { position: relative; z-index: 1; max-width: 1320px; margin: 32px auto; padding: 0 24px; }
 
@@ -56,19 +85,16 @@
         .room-heading { font-family: 'Oswald', sans-serif; font-size: 1.7rem; text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; gap: 10px; }
         .room-sub { font-size: 0.88rem; color: #6b4c57; margin-top: 2px; font-weight: 600; }
 
-        .id-box {
-            display: flex; align-items: center; gap: 10px; background: #fce8ed;
-            border: 2px solid #1e161a; padding: 6px 12px;
-        }
-        .id-text { font-family: monospace; font-size: 0.85rem; color: #1e161a; font-weight: 700; }
-        .btn-copy {
-            background: #1e161a; color: #f8c8d4; border: none; padding: 6px 14px;
-            font-family: 'Oswald', sans-serif; text-transform: uppercase; font-size: 0.8rem;
+        /* Кнопка "Поделиться" */
+        .btn-share {
+            background: #1e161a; color: #f8c8d4; border: 2px solid #1e161a; padding: 10px 20px;
+            font-family: 'Oswald', sans-serif; text-transform: uppercase; font-size: 0.9rem;
             letter-spacing: 1px; cursor: pointer; transition: 0.15s;
-            display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+            display: inline-flex; align-items: center; justify-content: center; gap: 8px;
         }
-        .btn-copy:hover { background: #d65a7b; color: #ffffff; }
-        .icon-svg { width: 15px; height: 15px; fill: currentColor; flex-shrink: 0; }
+        .btn-share:hover { background: #d65a7b; border-color: #d65a7b; color: #ffffff; }
+        .btn-share svg { width: 18px; height: 18px; fill: currentColor; }
+
         .main-grid { display: flex; gap: 24px; align-items: stretch; }
         .video-section { flex: 3; display: flex; flex-direction: column; }
 
@@ -89,6 +115,7 @@
             letter-spacing: 0.5px; text-transform: uppercase;
         }
         .ext-link:hover { text-decoration: underline; }
+
         .sidebar {
             flex: 1; min-width: 320px; background: #ffffff; border: 2px solid #1e161a;
             box-shadow: 6px 6px 0px #d65a7b; padding: 20px; display: flex; flex-direction: column; max-height: 680px;
@@ -151,20 +178,42 @@
         }
         .chat-form button:hover { background: #d65a7b; border-color: #d65a7b; color: #ffffff; }
 
+        /* --- МОБИЛЬНАЯ АДАПТАЦИЯ --- */
         @media (max-width: 900px) {
+            .navbar { padding: 0 16px; }
+            .sync-badge { display: none; } /* Скрываем бейдж синхронизации на мобилках для экономии места */
+
+            /* Кнопка выхода становится иконкой */
+            .btn-leave .text { display: none; }
+            .btn-leave .icon { display: block; }
+            .btn-leave { padding: 8px 12px; font-size: 1.2rem; }
+
+            .room-wrapper { margin: 16px auto; padding: 0 12px; }
+            .room-info-bar { flex-direction: column; align-items: stretch; padding: 16px; gap: 12px; box-shadow: 4px 4px 0px #1e161a; }
+            .room-heading { font-size: 1.4rem; }
+
+            .btn-share { width: 100%; }
+
             .main-grid { flex-direction: column; }
-            .sidebar { max-height: none; }
+            .sidebar { max-height: none; box-shadow: 4px 4px 0px #d65a7b; }
         }
     </style>
 </head>
 <body>
+    <!-- Тост для уведомления -->
+    <div id="toast">Ссылка скопирована!</div>
+
     <nav class="navbar">
         <a href="{% url 'index' %}" class="brand-logo"><img src="{% static 'images/logo.png' %}" alt="Zetroom"></a>
         <div class="nav-right">
             <div class="sync-badge"><span class="sync-dot"></span> Zetroom SYNC</div>
-            <a href="{% url 'leave_room' room.uuid %}" class="btn-leave" {% if user == room.host %}onclick="return confirm('Вы создатель комнаты. При выходе комната будет удалена. Продолжить?')"{% endif %}>← Выйти из комнаты</a>
+            <a href="{% url 'leave_room' room.uuid %}" class="btn-leave" {% if user == room.host %}onclick="return confirm('Вы создатель комнаты. При выходе комната будет удалена. Продолжить?')"{% endif %}>
+                <span class="text">← Выйти из комнаты</span>
+                <span class="icon">←</span>
+            </a>
         </div>
     </nav>
+
     <div class="room-wrapper">
         <div class="room-info-bar">
             <div>
@@ -172,14 +221,11 @@
                 <div class="room-sub">Хост: {{ room.host.username }} {% if room.description %}• {{ room.description }}{% endif %}</div>
             </div>
 
-            <div class="id-box">
-                {% if room.is_private %}
-                    <span class="id-text" style="color: #1e161a;">КОД ДОСТУПА: <b id="room-id-val">{{ room.access_code }}</b></span>
-                {% else %}
-                    <span class="id-text" id="room-id-val">{{ room.uuid }}</span>
-                {% endif %}
-                <button type="button" class="btn-copy" id="copyIdBtn" onclick="copyRoomId()">Копировать</button>
-            </div>
+            <!-- НОВАЯ КНОПКА ПОДЕЛИТЬСЯ -->
+            <button type="button" class="btn-share" onclick="shareRoom()">
+                <svg viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92 1.61 0 2.92-1.31 2.92-2.92s-1.31-2.92-2.92-2.92z"/></svg>
+                Поделиться
+            </button>
         </div>
 
         <div class="main-grid">
@@ -200,12 +246,12 @@
             <div class="sidebar">
                 <div class="voice-panel">
                     <div class="voice-controls">
-                        <button type="button" id="btn-voice-toggle" class="btn-copy" style="flex: 1; padding: 10px; font-size: 0.9rem;">
-                            <svg class="icon-svg" viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5-3c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
+                        <button type="button" id="btn-voice-toggle" class="btn-copy" style="flex: 1; padding: 10px; font-size: 0.9rem; background: #1e161a; color: #f8c8d4; border: 2px solid #1e161a; cursor: pointer; font-family: 'Oswald'; text-transform: uppercase; display: inline-flex; justify-content: center; align-items: center; gap: 6px;">
+                            <svg style="width:15px;height:15px;fill:currentColor;" viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5-3c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
                             <span>Войти в голос</span>
                         </button>
-                        <button type="button" id="btn-mute-toggle" class="btn-copy" style="display: none; padding: 10px; background: #2d2026; color: #ffffff;">
-                            <svg class="icon-svg" viewBox="0 0 24 24"><path d="M19 11h-1.7c0 .74-.16 1.43-.43 2.05l1.23 1.23c.56-.98.9-2.09.9-3.28zm-4.02.17c0-.06.02-.11.02-.17V5c0-1.66-1.34-3-3-3S9 3.34 9 5v.18l5.98 5.99zM4.27 3L3 4.27l6.01 6.01V11c0 1.66 1.33 3 2.99 3 .22 0 .44-.03.65-.08l1.66 1.66c-.71.33-1.5.52-2.31.52-2.76 0-5.3-2.1-5.3-5.1H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c.91-.13 1.77-.45 2.54-.9L19.73 21 21 19.73 4.27 3z"/></svg>
+                        <button type="button" id="btn-mute-toggle" style="display: none; padding: 10px; background: #2d2026; color: #ffffff; border: 2px solid #1e161a; cursor: pointer; font-family: 'Oswald'; text-transform: uppercase; display: none; justify-content: center; align-items: center; gap: 6px;">
+                            <svg style="width:15px;height:15px;fill:currentColor;" viewBox="0 0 24 24"><path d="M19 11h-1.7c0 .74-.16 1.43-.43 2.05l1.23 1.23c.56-.98.9-2.09.9-3.28zm-4.02.17c0-.06.02-.11.02-.17V5c0-1.66-1.34-3-3-3S9 3.34 9 5v.18l5.98 5.99zM4.27 3L3 4.27l6.01 6.01V11c0 1.66 1.33 3 2.99 3 .22 0 .44-.03.65-.08l1.66 1.66c-.71.33-1.5.52-2.31.52-2.76 0-5.3-2.1-5.3-5.1H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c.91-.13 1.77-.45 2.54-.9L19.73 21 21 19.73 4.27 3z"/></svg>
                             <span>Выкл. мик</span>
                         </button>
                     </div>
@@ -247,7 +293,7 @@
                     {% csrf_token %}
                     <input type="text" id="chat-input" name="message_text" placeholder="Написать сообщение..." autocomplete="off" required>
                     <button type="submit" id="chat-submit-btn">
-                        <svg class="icon-svg" viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+                        <svg style="width:15px;height:15px;fill:currentColor;" viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
                     </button>
                 </form>
             </div>
@@ -259,13 +305,19 @@
     {% if user == room.host %}{{ True|json_script:"is-host" }}{% else %}{{ False|json_script:"is-host" }}{% endif %}
 
     <script>
-        function copyRoomId() {
-            const idText = document.getElementById('room-id-val').textContent.trim();
-            navigator.clipboard.writeText(idText).then(() => {
-                const btn = document.getElementById('copyIdBtn');
-                const oldText = btn.textContent;
-                btn.textContent = 'СКОПИРОВАНО!';
-                setTimeout(() => { btn.textContent = oldText; }, 2000);
+        // --- ФУНКЦИЯ ПОДЕЛИТЬСЯ ---
+        function shareRoom() {
+            const roomUuid = JSON.parse(document.getElementById('room-uuid').textContent);
+            // Собираем полную ссылку на комнату
+            const url = window.location.origin + '/room/' + roomUuid + '/';
+
+            // Копируем в буфер обмена
+            navigator.clipboard.writeText(url).then(() => {
+                const toast = document.getElementById("toast");
+                toast.className = "show";
+                setTimeout(function(){ toast.className = toast.className.replace("show", ""); }, 3000);
+            }).catch(err => {
+                alert('Не удалось скопировать ссылку: ' + err);
             });
         }
 
@@ -322,7 +374,7 @@
                 if (isHost) return;
                 const overlay = document.createElement('div');
                 overlay.style.cssText = 'position:absolute;inset:0;background:rgba(30,22,26,0.92);display:flex;flex-direction:column;justify-content:center;align-items:center;gap:14px;z-index:20;';
-                overlay.innerHTML = `<div style="font-family:'Oswald',sans-serif;color:#f8c8d4;font-size:1.3rem;letter-spacing:1px;text-transform:uppercase;">ЭФИР ГОТОВ К СИНХРОНИЗАЦИИ</div><button type="button" id="btn-connect-stream" style="background:#d65a7b;color:#fff;border:2px solid #fff;padding:12px 26px;font-family:'Oswald',sans-serif;font-size:1rem;letter-spacing:1px;text-transform:uppercase;cursor:pointer;">ПОДКЛЮЧИТЬСЯ К ЭФИРУ</button>`;
+                overlay.innerHTML = `<div style="font-family:'Oswald',sans-serif;color:#f8c8d4;font-size:1.3rem;letter-spacing:1px;text-transform:uppercase;text-align:center;padding:0 10px;">ЭФИР ГОТОВ К СИНХРОНИЗАЦИИ</div><button type="button" id="btn-connect-stream" style="background:#d65a7b;color:#fff;border:2px solid #fff;padding:12px 26px;font-family:'Oswald',sans-serif;font-size:1rem;letter-spacing:1px;text-transform:uppercase;cursor:pointer;">ПОДКЛЮЧИТЬСЯ К ЭФИРУ</button>`;
                 playerContainer.appendChild(overlay);
                 document.getElementById('btn-connect-stream').onclick = () => { viewerConnected = true; overlay.remove(); onConnect(); };
             }
@@ -404,9 +456,9 @@
             const btnMuteToggle = document.getElementById('btn-mute-toggle');
             const voiceStatusText = document.getElementById('voice-status-text');
             const remoteAudios = document.getElementById('remote-audios');
-            const micOnIcon = `<svg class="icon-svg" viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5-3c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>`;
-            const callEndIcon = `<svg class="icon-svg" viewBox="0 0 24 24"><path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-.98.49-1.87 1.12-2.66 1.85-.18.18-.43.28-.7.28-.28 0-.53-.11-.71-.29L.29 13.08c-.18-.17-.29-.42-.29-.7 0-.28.11-.53.29-.71C3.34 8.78 7.46 7 12 7s8.66 1.78 11.71 4.67c.18.18.29.43.29.71 0 .28-.11.53-.29.71l-2.48 2.48c-.18.18-.43.29-.71.29-.27 0-.52-.11-.7-.28-.79-.74-1.69-1.36-2.67-1.85-.33-.16-.56-.5-.56-.9v-3.1C15.15 9.25 13.6 9 12 9z"/></svg>`;
-            const micOffIcon = `<svg class="icon-svg" viewBox="0 0 24 24"><path d="M19 11h-1.7c0 .74-.16 1.43-.43 2.05l1.23 1.23c.56-.98.9-2.09.9-3.28zm-4.02.17c0-.06.02-.11.02-.17V5c0-1.66-1.34-3-3-3S9 3.34 9 5v.18l5.98 5.99zM4.27 3L3 4.27l6.01 6.01V11c0 1.66 1.33 3 2.99 3 .22 0 .44-.03.65-.08l1.66 1.66c-.71.33-1.5.52-2.31.52-2.76 0-5.3-2.1-5.3-5.1H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c.91-.13 1.77-.45 2.54-.9L19.73 21 21 19.73 4.27 3z"/></svg>`;
+            const micOnIcon = `<svg style="width:15px;height:15px;fill:currentColor;" viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5-3c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>`;
+            const callEndIcon = `<svg style="width:15px;height:15px;fill:currentColor;" viewBox="0 0 24 24"><path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-.98.49-1.87 1.12-2.66 1.85-.18.18-.43.28-.7.28-.28 0-.53-.11-.71-.29L.29 13.08c-.18-.17-.29-.42-.29-.7 0-.28.11-.53.29-.71C3.34 8.78 7.46 7 12 7s8.66 1.78 11.71 4.67c.18.18.29.43.29.71 0 .28-.11.53-.29.71l-2.48 2.48c-.18.18-.43.29-.71.29-.27 0-.52-.11-.7-.28-.79-.74-1.69-1.36-2.67-1.85-.33-.16-.56-.5-.56-.9v-3.1C15.15 9.25 13.6 9 12 9z"/></svg>`;
+            const micOffIcon = `<svg style="width:15px;height:15px;fill:currentColor;" viewBox="0 0 24 24"><path d="M19 11h-1.7c0 .74-.16 1.43-.43 2.05l1.23 1.23c.56-.98.9-2.09.9-3.28zm-4.02.17c0-.06.02-.11.02-.17V5c0-1.66-1.34-3-3-3S9 3.34 9 5v.18l5.98 5.99zM4.27 3L3 4.27l6.01 6.01V11c0 1.66 1.33 3 2.99 3 .22 0 .44-.03.65-.08l1.66 1.66c-.71.33-1.5.52-2.31.52-2.76 0-5.3-2.1-5.3-5.1H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c.91-.13 1.77-.45 2.54-.9L19.73 21 21 19.73 4.27 3z"/></svg>`;
 
             function getOrCreatePeer(remoteId, initiator) {
                 if (peers[remoteId]) return peers[remoteId];
