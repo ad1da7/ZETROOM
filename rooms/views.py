@@ -18,6 +18,7 @@ except ImportError:
 
 
 def extract_direct_stream(video_url):
+    # Оставляем твою логику
     if not video_url:
         return ''
     lower_url = video_url.lower()
@@ -29,48 +30,37 @@ def extract_direct_stream(video_url):
         return ''
 
     ydl_opts = {
-        'quiet': True,
-        'no_warnings': True,
-        'format': 'best[ext=mp4]/best',
-        'noplaylist': True,
-        'socket_timeout': 8,
-        'http_headers': {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-            'Accept-Language': 'ru-RU,ru;q=0.9',
-        }
+        'quiet': True, 'no_warnings': True, 'format': 'best[ext=mp4]/best',
+        'noplaylist': True, 'socket_timeout': 8,
+        'http_headers': {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
     }
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(video_url, download=False)
             if info and 'url' in info:
                 return info['url']
-    except Exception as e:
-        print(f"[STREAM EXTRACT ERROR] {e}")
+    except Exception:
+        pass
     return ''
 
 
 def fetch_video_thumbnail(video_url):
+    # Оставляем твою логику
     if not video_url:
         return ''
     try:
         if 'youtube.com' in video_url or 'youtu.be' in video_url:
             yt_match = re.search(r'(?:v=|youtu\.be/|shorts/|embed/)([a-zA-Z0-9_-]{11})', video_url)
             if yt_match:
-                yt_id = yt_match.group(1)
-                return f"https://youtube.com{yt_id}/hqdefault.jpg"
-
-        req = urllib.request.Request(
-            video_url,
-            headers={
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                'Accept-Language': 'ru-RU,ru;q=0.9'
-            }
-        )
+                return f"https://youtube.com{yt_match.group(1)}/hqdefault.jpg"
+        req = urllib.request.Request(video_url, headers={'User-Agent': 'Mozilla/5.0'})
         with urllib.request.urlopen(req, timeout=5) as resp:
             html = resp.read().decode('utf-8', errors='ignore')
-            og_match = re.search(r'<meta[^>]+(?:property|name)=["\']og:image["\'][^>]+content=["\']([^"\']+)["\']', html, re.IGNORECASE)
+            og_match = re.search(r'<meta[^>]+(?:property|name)=["\']og:image["\'][^>]+content=["\']([^"\']+)["\']',
+                                 html, re.IGNORECASE)
             if not og_match:
-                og_match = re.search(r'<meta[^>]+content=["\']([^"\']+)["\'][^>]+(?:property|name)=["\']og:image["\']', html, re.IGNORECASE)
+                og_match = re.search(r'<meta[^>]+content=["\']([^"\']+)["\'][^>]+(?:property|name)=["\']og:image["\']',
+                                     html, re.IGNORECASE)
             if og_match:
                 return og_match.group(1).replace('&amp;', '&')
     except Exception:
@@ -81,35 +71,26 @@ def fetch_video_thumbnail(video_url):
 def index(request):
     query = request.GET.get('q', '').strip()
     age_filter = request.GET.get('age', 'all')
-
     rooms = Room.objects.filter(is_private=False).order_by('-created_at')
     for r in rooms:
         r.cleanup_stale_participants()
-
     if query:
         rooms = rooms.filter(name__icontains=query)
     if age_filter == '18':
         rooms = rooms.filter(is_18_plus=True)
+    return render(request, 'index.html', {'rooms': rooms, 'query': query, 'age_filter': age_filter})
 
-    return render(request, 'index.html', {
-        'rooms': rooms,
-        'query': query,
-        'age_filter': age_filter
-    })
+
 def rooms_counts_api(request):
     rooms = Room.objects.filter(is_private=False)
     data = {}
     for r in rooms:
         r.cleanup_stale_participants()
-        data[str(r.uuid)] = {
-            'count': r.participants.count(),
-            'max': r.max_participants
-        }
+        data[str(r.uuid)] = {'count': r.participants.count(), 'max': r.max_participants}
     return JsonResponse({'rooms': data})
 
 
-def all_rooms(request):
-    return redirect('index')
+def all_rooms(request): return redirect('index')
 
 
 @login_required
@@ -122,19 +103,13 @@ def create_room(request):
         is_18_plus = request.POST.get('is_18_plus') == 'on'
         is_private = request.POST.get('is_private') == 'on'
 
-        if not name:
-            return redirect('index')
+        if not name: return redirect('index')
 
-        thumbnail_url = fetch_video_thumbnail(video_url)
         room = Room.objects.create(
-            name=name,
-            host=request.user,
-            description=description,
-            video_url=video_url,
-            thumbnail_url=thumbnail_url,
+            name=name, host=request.user, description=description,
+            video_url=video_url, thumbnail_url=fetch_video_thumbnail(video_url),
             max_participants=max(1, min(max_participants, 100)),
-            is_18_plus=is_18_plus,
-            is_private=is_private,
+            is_18_plus=is_18_plus, is_private=is_private,
         )
         Participant.objects.get_or_create(room=room, user=request.user)
         return redirect('room_detail', room_uuid=room.uuid)
@@ -145,8 +120,7 @@ def create_room(request):
 def join_room(request):
     if request.method == 'POST':
         q = request.POST.get('query', '').strip()
-        if not q:
-            return redirect('index')
+        if not q: return redirect('index')
         room = Room.objects.filter(access_code__iexact=q).first()
         if not room:
             try:
@@ -155,34 +129,30 @@ def join_room(request):
                 room = None
         if not room:
             room = Room.objects.filter(name__icontains=q, is_private=False).first()
-        if room:
-            return redirect('room_detail', room_uuid=room.uuid)
+        if room: return redirect('room_detail', room_uuid=room.uuid)
     return redirect('index')
 
 
 @login_required
 def room_detail(request, room_uuid):
     room = get_object_or_404(Room, uuid=room_uuid)
-    if room.banned_users.filter(id=request.user.id).exists():
-        return redirect('index')
-
+    if room.banned_users.filter(id=request.user.id).exists(): return redirect('index')
     room.cleanup_stale_participants()
     if room.participants.count() >= room.max_participants and not room.participants.filter(user=request.user).exists():
         return redirect('index')
 
-    Participant.objects.update_or_create(
-        room=room, user=request.user, defaults={'last_seen': timezone.now()}
-    )
+    Participant.objects.update_or_create(room=room, user=request.user, defaults={'last_seen': timezone.now()})
     direct_stream_url = extract_direct_stream(room.video_url)
-    is_host = (room.host_id == request.user.id)
 
     return render(request, 'room.html', {
         'room': room,
-        'is_host': is_host,
+        'is_host': room.host_id == request.user.id,
         'direct_stream_url': direct_stream_url,
         'participants': room.participants.select_related('user').all(),
         'messages': room.messages.all().order_by('created_at')[:100],
     })
+
+
 @login_required
 def delete_room(request, room_uuid):
     room = get_object_or_404(Room, uuid=room_uuid)
@@ -239,9 +209,7 @@ def room_sync_api(request, room_uuid):
         uid_str = str(request.user.id)
         is_host = (room.host_id == request.user.id)
 
-        Participant.objects.update_or_create(
-            room=room, user=request.user, defaults={'last_seen': timezone.now()}
-        )
+        Participant.objects.update_or_create(room=room, user=request.user, defaults={'last_seen': timezone.now()})
         room.cleanup_stale_participants()
 
         payload = {}
@@ -251,19 +219,23 @@ def room_sync_api(request, room_uuid):
             except Exception:
                 payload = {}
 
+        # Обновление состояния видео (только хост)
         if is_host and 'video' in payload:
             v = payload['video']
             room.is_playing = bool(v.get('is_playing', room.is_playing))
             room.current_time = float(v.get('current_time', room.current_time))
 
+        # Сохранение чата
         chat_text = (payload.get('chat_message') or '').strip()
         if chat_text:
             Message.objects.create(room=room, user=request.user.username, text=chat_text[:1000])
 
+        # Голосовое состояние (кто в голосе, кто замьючен)
         vs = {k: v for k, v in (room.voice_state or {}).items() if now_ts - v.get('updated_at', 0) < 12}
         v_act = payload.get('voice_action')
         if v_act == 'join':
-            vs[uid_str] = {'username': request.user.username, 'muted': bool(payload.get('muted', False)), 'updated_at': now_ts}
+            vs[uid_str] = {'username': request.user.username, 'muted': bool(payload.get('muted', False)),
+                           'updated_at': now_ts}
         elif v_act == 'leave':
             vs.pop(uid_str, None)
         elif uid_str in vs:
@@ -272,16 +244,19 @@ def room_sync_api(request, room_uuid):
                 vs[uid_str]['muted'] = bool(payload['muted'])
         room.voice_state = vs
 
+        # WebRTC Сигналы (SDP / ICE)
         sigs = [s for s in (room.webrtc_signals or []) if now_ts - s.get('ts', 0) < 15]
         for s in (payload.get('signals') or []):
-            sigs.append({'from': uid_str, 'to': str(s.get('to')), 'type': s.get('type'), 'data': s.get('data'), 'ts': now_ts})
+            sigs.append(
+                {'from': uid_str, 'to': str(s.get('to')), 'type': s.get('type'), 'data': s.get('data'), 'ts': now_ts})
         my_sigs = [s for s in sigs if s.get('to') == uid_str]
         room.webrtc_signals = [s for s in sigs if s.get('to') != uid_str]
         room.save()
 
         last_id = int(request.GET.get('last_msg_id') or payload.get('last_msg_id') or 0)
         msgs = [{'id': m.id, 'user': m.user, 'text': m.text} for m in room.messages.filter(id__gt=last_id)[:50]]
-        parts = [{'id': p.user_id, 'username': p.user.username, 'is_host': p.user_id == room.host_id} for p in room.participants.select_related('user').all() if p.user]
+        parts = [{'id': p.user_id, 'username': p.user.username, 'is_host': p.user_id == room.host_id} for p in
+                 room.participants.select_related('user').all() if p.user]
 
         return JsonResponse({
             'status': 'ok',

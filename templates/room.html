@@ -5,8 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Zetroom | {{ room.name }}</title>
-    <link href="https://googleapis.com" rel="stylesheet">
-    <script src="https://jsdelivr.net"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Oswald:wght@400;600&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; border-radius: 0 !important; }
 
@@ -264,6 +263,7 @@
     {% else %}
         {{ False|json_script:"is-host" }}
     {% endif %}
+
     <script>
         function copyRoomId() {
             const idText = document.getElementById('room-id-val').textContent.trim();
@@ -290,25 +290,27 @@
             let lastKnownTime = 0, isPlayerPlaying = false;
             let latestHostState = { is_playing: false, current_time: 0 };
 
-                       function detectAndBuildIframe(url) {
+            // --- ИСПРАВЛЕННЫЙ ПЛЕЕР RUTUBE И VK ---
+            function detectAndBuildIframe(url) {
                 if (url.includes('rutube.ru/video/')) {
                     playerPlatform = 'rutube';
                     const m = url.match(/rutube\.ru\/video\/([a-zA-Z0-9]+)/);
-                    return m ? 'https://rutube.ru' + m.at(1) : url;
+                    return m ? 'https://rutube.ru/play/embed/' + m[1] : url;
                 }
-                if (url.includes('://vk.com') || url.includes('vkvideo.ru/video')) {
+                if (url.includes('vk.com') || url.includes('vkvideo.ru/video')) {
                     playerPlatform = 'vk';
                     const m = url.match(/video(-?\d+)_(\d+)/);
-                    return m ? 'https://://vk.com_ext.php?oid=' + m.at(1) + '&id=' + m.at(2) + '&hd=2&js_api=1' : url;
+                    return m ? 'https://vk.com/video_ext.php?oid=' + m[1] + '&id=' + m[2] + '&hd=2&js_api=1' : url;
                 }
                 if (url.includes('youtube.com') || url.includes('youtu.be')) {
                     playerPlatform = 'youtube';
                     const m = url.match(/(?:v=|youtu\.be\/|shorts\/)([a-zA-Z0-9_-]{11})/);
-                    return m ? 'https://youtube.com' + m.at(1) + '?enablejsapi=1' : url;
+                    return m ? 'https://youtube.com' + m[1] + '?enablejsapi=1' : url;
                 }
                 return url;
             }
 
+            // Отправка команд в iframe (Rutube/VK)
             function sendIframeCommand(cmd, timeVal) {
                 if (!iframeEl || !iframeEl.contentWindow) return;
                 if (playerPlatform === 'rutube') {
@@ -322,6 +324,7 @@
                 }
             }
 
+            // Оверлей для зрителей (синхронизация)
             function attachViewerOverlay(onConnect) {
                 if (isHost) return;
                 const overlay = document.createElement('div');
@@ -331,6 +334,7 @@
                 document.getElementById('btn-connect-stream').onclick = () => { viewerConnected = true; overlay.remove(); onConnect(); };
             }
 
+            // Инициализация плеера
             if (directUrl) {
                 playerPlatform = 'direct';
                 videoEl = document.createElement('video');
@@ -339,6 +343,7 @@
                 if (directUrl.includes('.m3u8') && window.Hls && Hls.isSupported()) {
                     const hls = new Hls(); hls.loadSource(directUrl); hls.attachMedia(videoEl);
                 } else { videoEl.src = directUrl; }
+
                 attachViewerOverlay(() => {
                     videoEl.controls = true;
                     videoEl.currentTime = latestHostState.current_time || 0;
@@ -349,15 +354,19 @@
                 iframeEl.src = detectAndBuildIframe(videoUrl);
                 iframeEl.allow = 'autoplay; fullscreen; picture-in-picture'; iframeEl.allowFullscreen = true;
                 playerContainer.innerHTML = ''; playerContainer.appendChild(iframeEl);
+
                 attachViewerOverlay(() => {
                     sendIframeCommand(latestHostState.is_playing ? 'play' : 'pause', latestHostState.current_time || 0);
                 });
             }
+
+            // Обработка сообщений от iframe
             window.addEventListener('message', (event) => {
                 if (!iframeEl) return;
                 let msg = event.data;
                 if (typeof msg === 'string') { try { msg = JSON.parse(msg); } catch (e) { return; } }
                 if (!msg || typeof msg !== 'object') return;
+
                 if (playerPlatform === 'rutube') {
                     if (msg.type === 'player:currentTime' && msg.data) lastKnownTime = msg.data.time;
                     else if (msg.type === 'player:changeState' && msg.data) {
@@ -372,13 +381,17 @@
                 }
             });
 
+            // Закрытие вкладки (выход)
             window.addEventListener('beforeunload', () => navigator.sendBeacon(leaveUrl, new Blob(['{}'], { type: 'application/json' })));
 
+            // --- ГОЛОСОВОЙ ЧАТ (WebRTC) ---
             let localStream = null, isVoiceActive = false, isMuted = false, pendingVoiceAction = null;
             const peers = {}, outgoingSignals = [];
+
+            // ИСПРАВЛЕННЫЙ STUN
             const rtcConfig = {
                 iceServers: [
-                    { urls: 'stun:://google.com' },
+                    { urls: 'stun:stun.l.google.com:19302' },
                     { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
                     { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' }
                 ]
@@ -401,7 +414,7 @@
                 pc.ontrack = e => {
                     let a = document.getElementById('audio-' + remoteId);
                     if (!a) { a = document.createElement('audio'); a.id = 'audio-' + remoteId; a.autoplay = true; remoteAudios.appendChild(a); }
-                    a.srcObject = e.streams; a.play().catch(() => {});
+                    a.srcObject = e.streams[0]; a.play().catch(() => {});
                 };
                 if (initiator) pc.createOffer().then(o => pc.setLocalDescription(o)).then(() => outgoingSignals.push({ to: remoteId, type: 'offer', data: pc.localDescription }));
                 return pc;
@@ -437,6 +450,7 @@
                 syncTick();
             });
 
+            // --- ЧАТ И СИНХРОНИЗАЦИЯ ---
             let lastMsgId = 0, pendingChatMsg = '';
             const chatBox = document.getElementById('chat-box');
             document.getElementById('chat-form').addEventListener('submit', e => {
@@ -482,12 +496,12 @@
 
                     const vUsers = Object.entries(data.voice_state || {});
                     voiceStatusText.textContent = vUsers.length
-                        ? 'В голосе: ' + vUsers.map(entry => entry.at(1).username + (entry.at(1).muted ? ' [MUTE]' : '')).join(', ')
+                        ? 'В голосе: ' + vUsers.map(entry => entry[1].username + (entry[1].muted ? ' [MUTE]' : '')).join(', ')
                         : 'Голосовой чат пуст';
 
                     if (isVoiceActive) {
                         vUsers.forEach(entry => {
-                            const uid = entry.at(0);
+                            const uid = entry[0];
                             if (uid !== myUserId && !peers[uid]) {
                                 getOrCreatePeer(uid, Number(myUserId) > Number(uid));
                             }
@@ -524,9 +538,8 @@
                 ['play', 'pause', 'seeked'].forEach(ev => videoEl.addEventListener(ev, syncTick));
             }
             syncTick();
-            setInterval(syncTick, 3000);
+            setInterval(syncTick, 2000); // Уменьшил интервал до 2 секунд для более плавной синхронизации
         });
     </script>
 </body>
 </html>
->
