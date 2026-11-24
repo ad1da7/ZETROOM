@@ -7,9 +7,6 @@ from django.core.exceptions import ValidationError
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.http import JsonResponse
-from django.core.cache import cache
-from channels.layers import get_channel_layer
-from asgiref.sync import async_to_sync
 from .models import Room, Participant, Message
 
 try:
@@ -29,6 +26,10 @@ def extract_direct_stream(video_url):
         'no_warnings': True,
         'format': 'best[ext=mp4]/best',
         'noplaylist': True,
+        'http_headers': {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+            'Accept-Language': 'ru-RU,ru;q=0.9',
+        }
     }
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -144,6 +145,16 @@ def create_room(request):
 
 
 @login_required
+def leave_room(request, room_uuid):
+    room = get_object_or_404(Room, uuid=room_uuid)
+    if room.host == request.user:
+        room.delete()
+    else:
+        Participant.objects.filter(room=room, user=request.user).delete()
+    return redirect('index')
+
+
+@login_required
 def delete_room(request, room_uuid):
     room = get_object_or_404(Room, uuid=room_uuid)
     if request.user.is_staff or request.user.is_superuser or room.host == request.user:
@@ -158,19 +169,6 @@ def kick_user(request, room_uuid, user_id):
         target_user = get_object_or_404(User, id=user_id)
         room.banned_users.add(target_user)
         Participant.objects.filter(room=room, user=target_user).delete()
-
-        channel_layer = get_channel_layer()
-        async_to_sync(channel_layer.group_send)(
-            f'room_{room.uuid}',
-            {
-                'type': 'kick_signal_message',
-                'data': {
-                    'type': 'user_kicked',
-                    'kicked_user_id': target_user.id,
-                    'kicked_username': target_user.username
-                }
-            }
-        )
     return redirect('room_detail', room_uuid=room.uuid)
 @login_required
 def join_room(request):
@@ -256,20 +254,25 @@ def room_detail(request, room_uuid):
 
 @login_required
 def room_sync_api(request, room_uuid):
-    room = get_object_or_404(Room, uuid=room_uuid)
+    room = Room.objects.filter(uuid=room_uuid).first()
+    if not room:
+        return JsonResponse({'room_deleted': True})
 
     if room.banned_users.filter(id=request.user.id).exists():
         return JsonResponse({'kicked': True})
 
-    cache_key_video = f"room_video_{room.uuid}"
-    cache_key_voice = f"room_voice_{room.uuid}"
-    cache_key_signals = f"room_signals_{room.uuid}"
-
-    voice_users = cache.get(cache_key_voice, {})
-    signals = cache.get(cache_key_signals, [])
     now = time.time()
+    voice_users = dict(room.voice_state or {})
+    signals = list(room.webrtc_signals or [])
 
-    voice_users = {k: v for k, v in voice_users.items() if now - v['ts'] < 8}
+    cleaned_voice = {k: v for k, v in voice_users.items() if now - v.get('ts', 0) < 12}
+    cleaned_signals = [s for s in signals if now - s.get('ts', 0) < 15]
+    changed = (len(cleaned_voice) != len(voice_users)) or (len(cleaned_signals) != len(signals))
+
+    active_peer = request.GET.get('voice_peer', '').strip()
+    if active_peer:
+        cleaned_voice[active_peer] = {'username': request.user.username, 'ts': now}
+        changed = True
 
     if request.method == 'POST':
         try:
@@ -285,42 +288,51 @@ def room_sync_api(request, room_uuid):
                 Message.objects.create(room=room, user=request.user.username, text=text)
 
         elif action_type == 'video_state' and room.host == request.user:
-            cache.set(cache_key_video, {
-                'is_playing': body.get('is_playing', False),
-                'time': float(body.get('time', 0)),
-                'updated_at': now
-            }, timeout=3600)
-
-        elif action_type == 'voice_ping':
-            peer_id = body.get('peerId')
-            if peer_id:
-                voice_users[peer_id] = {'username': request.user.username, 'ts': now}
-                cache.set(cache_key_voice, voice_users, timeout=60)
+            room.is_playing = bool(body.get('is_playing', False))
+            room.current_time = float(body.get('time', 0))
+            changed = True
 
         elif action_type == 'voice_leave':
             peer_id = body.get('peerId')
-            if peer_id in voice_users:
-                del voice_users[peer_id]
-                cache.set(cache_key_voice, voice_users, timeout=60)
+            if peer_id in cleaned_voice:
+                del cleaned_voice[peer_id]
+                changed = True
 
         elif action_type == 'webrtc_signal':
-            signals.append({'ts': now, 'data': body.get('signal')})
-            signals = [s for s in signals if now - s['ts'] < 15]
-            cache.set(cache_key_signals, signals, timeout=60)
+            cleaned_signals.append({'ts': now, 'data': body.get('signal')})
+            changed = True
+
+        if changed:
+            room.voice_state = cleaned_voice
+            room.webrtc_signals = cleaned_signals
+            room.save(update_fields=['is_playing', 'current_time', 'voice_state', 'webrtc_signals'])
 
         return JsonResponse({'ok': True})
+
+    if changed:
+        room.voice_state = cleaned_voice
+        room.webrtc_signals = cleaned_signals
+        room.save(update_fields=['voice_state', 'webrtc_signals'])
 
     last_msg_id = int(request.GET.get('last_msg_id', 0))
     new_msgs = list(room.messages.filter(id__gt=last_msg_id).order_by('id').values('id', 'user', 'text'))
 
     since_ts = float(request.GET.get('since_ts', 0))
-    new_signals = [s['data'] for s in signals if s['ts'] > since_ts]
+    new_signals = [s['data'] for s in cleaned_signals if s['ts'] > since_ts]
+
+    participants_data = [
+        {'id': p.user.id, 'username': p.user.username, 'is_host': p.user_id == room.host_id}
+        for p in room.participants.select_related('user').all()
+    ]
 
     return JsonResponse({
         'kicked': False,
+        'room_deleted': False,
         'server_ts': now,
         'messages': new_msgs,
-        'video': cache.get(cache_key_video),
-        'voice_users': voice_users,
+        'video': {'is_playing': room.is_playing, 'time': room.current_time},
+        'voice_users': cleaned_voice,
         'signals': new_signals,
+        'participants': participants_data,
+        'max_participants': room.max_participants,
     })

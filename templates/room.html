@@ -54,7 +54,7 @@
             padding: 18px 24px; margin-bottom: 24px; display: flex;
             justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;
         }
-        .room-heading { font-family: 'Oswald', sans-serif; font-size: 1.7rem; text-transform: uppercase; letter-spacing: 1px; }
+        .room-heading { font-family: 'Oswald', sans-serif; font-size: 1.7rem; text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; gap: 10px; }
         .room-sub { font-size: 0.88rem; color: #6b4c57; margin-top: 2px; font-weight: 600; }
 
         .id-box {
@@ -66,8 +66,10 @@
             background: #1e161a; color: #f8c8d4; border: none; padding: 6px 14px;
             font-family: 'Oswald', sans-serif; text-transform: uppercase; font-size: 0.8rem;
             letter-spacing: 1px; cursor: pointer; transition: 0.15s;
+            display: inline-flex; align-items: center; justify-content: center; gap: 6px;
         }
         .btn-copy:hover { background: #d65a7b; color: #ffffff; }
+        .icon-svg { width: 15px; height: 15px; fill: currentColor; flex-shrink: 0; }
 
         .main-grid { display: flex; gap: 24px; align-items: stretch; }
         .video-section { flex: 3; display: flex; flex-direction: column; }
@@ -113,12 +115,16 @@
             padding: 4px 10px; font-size: 0.82rem; font-weight: 700;
             display: inline-flex; align-items: center; gap: 6px;
         }
+        .host-badge {
+            background: #1e161a; color: #f8c8d4; font-family: 'Oswald', sans-serif;
+            font-size: 0.68rem; padding: 1px 5px; letter-spacing: 0.5px; text-transform: uppercase;
+        }
         .btn-kick {
-            background: #c93b5b; color: #ffffff; text-decoration: none;
+            background: #1e161a; color: #ffffff; text-decoration: none;
             padding: 1px 6px; font-size: 0.72rem; font-family: 'Oswald', sans-serif;
             text-transform: uppercase; border: 1px solid #1e161a; cursor: pointer;
         }
-        .btn-kick:hover { background: #1e161a; color: #f8c8d4; }
+        .btn-kick:hover { background: #c93b5b; border-color: #c93b5b; }
 
         .chat-box {
             flex: 1; overflow-y: auto; background: #fce8ed; border: 2px solid #1e161a;
@@ -143,6 +149,7 @@
         .chat-form button {
             background: #1e161a; color: #f8c8d4; border: 2px solid #1e161a; padding: 0 18px;
             font-family: 'Oswald', sans-serif; font-size: 1rem; letter-spacing: 1px; cursor: pointer; transition: 0.15s;
+            display: inline-flex; align-items: center; justify-content: center;
         }
         .chat-form button:hover { background: #d65a7b; border-color: #d65a7b; color: #ffffff; }
 
@@ -157,20 +164,20 @@
         <a href="{% url 'index' %}" class="brand-logo"><img src="{% static 'images/logo.png' %}" alt="Zetroom"></a>
         <div class="nav-right">
             <div class="sync-badge"><span class="sync-dot"></span> Zetroom SYNC</div>
-            <a href="{% url 'index' %}" class="btn-leave">← Выйти из комнаты</a>
+            <a href="{% url 'leave_room' room.uuid %}" class="btn-leave" {% if user == room.host %}onclick="return confirm('Вы создатель комнаты. При выходе комната будет удалена. Продолжить?')"{% endif %}>← Выйти из комнаты</a>
         </div>
     </nav>
 
     <div class="room-wrapper">
         <div class="room-info-bar">
             <div>
-                <h1 class="room-heading">{{ room.name }} {% if room.is_18_plus %}<span style="background:#c93b5b;color:#fff;font-size:1rem;padding:2px 8px;">18+</span>{% endif %}</h1>
+                <h1 class="room-heading">{{ room.name }} {% if room.is_18_plus %}<span style="background:#1e161a;color:#f8c8d4;border:1px solid #1e161a;font-size:0.9rem;padding:2px 8px;">18+</span>{% endif %}</h1>
                 <div class="room-sub">Хост: {{ room.host.username }} {% if room.description %}• {{ room.description }}{% endif %}</div>
             </div>
 
             <div class="id-box">
                 {% if room.is_private %}
-                    <span class="id-text" style="color: #d65a7b;">КОД ДОСТУПА: <b id="room-id-val">{{ room.access_code }}</b></span>
+                    <span class="id-text" style="color: #1e161a;">КОД ДОСТУПА: <b id="room-id-val">{{ room.access_code }}</b></span>
                 {% else %}
                     <span class="id-text" id="room-id-val">{{ room.uuid }}</span>
                 {% endif %}
@@ -195,8 +202,14 @@
             <div class="sidebar">
                 <div class="voice-panel">
                     <div class="voice-controls">
-                        <button type="button" id="btn-voice-toggle" class="btn-copy" style="flex: 1; padding: 10px; font-size: 0.9rem;">🎙 Войти в голос</button>
-                        <button type="button" id="btn-mute-toggle" class="btn-copy" style="display: none; padding: 10px; background: #d65a7b;">🔇 Выкл. мик</button>
+                        <button type="button" id="btn-voice-toggle" class="btn-copy" style="flex: 1; padding: 10px; font-size: 0.9rem;">
+                            <svg class="icon-svg" viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5-3c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
+                            <span>Войти в голос</span>
+                        </button>
+                        <button type="button" id="btn-mute-toggle" class="btn-copy" style="display: none; padding: 10px; background: #2d2026; color: #ffffff;">
+                            <svg class="icon-svg" viewBox="0 0 24 24"><path d="M19 11h-1.7c0 .74-.16 1.43-.43 2.05l1.23 1.23c.56-.98.9-2.09.9-3.28zm-4.02.17c0-.06.02-.11.02-.17V5c0-1.66-1.34-3-3-3S9 3.34 9 5v.18l5.98 5.99zM4.27 3L3 4.27l6.01 6.01V11c0 1.66 1.33 3 2.99 3 .22 0 .44-.03.65-.08l1.66 1.66c-.71.33-1.5.52-2.31.52-2.76 0-5.3-2.1-5.3-5.1H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c.91-.13 1.77-.45 2.54-.9L19.73 21 21 19.73 4.27 3z"/></svg>
+                            <span>Выкл. мик</span>
+                        </button>
                     </div>
                     <div class="voice-status" id="voice-status-text">Голосовой чат пуст</div>
                     <div id="remote-audios" style="display: none;"></div>
@@ -204,14 +217,15 @@
 
                 <div class="section-label">
                     <span>Зрители в зале</span>
-                    <span>{{ participants|length }} / {{ room.max_participants }}</span>
+                    <span id="participants-counter">{{ participants|length }} / {{ room.max_participants }}</span>
                 </div>
-                <ul class="participants-list">
+                <ul class="participants-list" id="participants-list">
                     {% for p in participants %}
                         <li class="participant-tag">
-                            <span>{{ p.user.username }}{% if p.user == room.host %} 👑{% endif %}</span>
+                            <span>{{ p.user.username }}</span>
+                            {% if p.user == room.host %}<span class="host-badge">ХОСТ</span>{% endif %}
                             {% if user == room.host and p.user != room.host %}
-                                <a href="{% url 'kick_user' room.uuid p.user.id %}" class="btn-kick" title="Кикнуть и заблокировать вход" onclick="return confirm('Кикнуть {{ p.user.username }}? Он больше не сможет войти в эту комнату.')">Кик</a>
+                                <a href="{% url 'kick_user' room.uuid p.user.id %}" class="btn-kick" onclick="return confirm('Кикнуть {{ p.user.username }}?')">Кик</a>
                             {% endif %}
                         </li>
                     {% endfor %}
@@ -232,7 +246,9 @@
                 <form class="chat-form" id="chat-form" method="POST">
                     {% csrf_token %}
                     <input type="text" id="chat-input" name="message_text" placeholder="Написать сообщение..." autocomplete="off" required>
-                    <button type="submit">➤</button>
+                    <button type="submit">
+                        <svg class="icon-svg" viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+                    </button>
                 </form>
             </div>
         </div>
@@ -315,8 +331,8 @@
                     playerPlatform = 'direct';
                     if (statusTextEl) {
                         statusTextEl.textContent = isHost
-                            ? 'Zetroom Direct Stream (Rave Mode) • Вы хост'
-                            : 'Zetroom Direct Stream (Rave Mode) • Синхронизация с хостом';
+                            ? 'Zetroom Direct Stream • Вы хост'
+                            : 'Zetroom Direct Stream • Синхронизация с хостом';
                     }
 
                     if (directUrl.includes('.m3u8') && typeof Hls !== 'undefined' && Hls.isSupported()) {
@@ -410,7 +426,7 @@
                     }
                 });
 
-                setInterval(pushHostState, 2000);
+                setInterval(pushHostState, 5000);
             } else {
                 window.addEventListener('message', (event) => {
                     if (!iframeElement) return;
@@ -458,6 +474,10 @@
             const voiceStatusText = document.getElementById('voice-status-text');
             const remoteAudios = document.getElementById('remote-audios');
 
+            const micOnIcon = `<svg class="icon-svg" viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5-3c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>`;
+            const callEndIcon = `<svg class="icon-svg" viewBox="0 0 24 24"><path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-.98.49-1.87 1.12-2.66 1.85-.18.18-.43.28-.7.28-.28 0-.53-.11-.71-.29L.29 13.08c-.18-.17-.29-.42-.29-.7 0-.28.11-.53.29-.71C3.34 8.78 7.46 7 12 7s8.66 1.78 11.71 4.67c.18.18.29.43.29.71 0 .28-.11.53-.29.71l-2.48 2.48c-.18.18-.43.29-.71.29-.27 0-.52-.11-.7-.28-.79-.74-1.69-1.36-2.67-1.85-.33-.16-.56-.5-.56-.9v-3.1C15.15 9.25 13.6 9 12 9z"/></svg>`;
+            const micOffIcon = `<svg class="icon-svg" viewBox="0 0 24 24"><path d="M19 11h-1.7c0 .74-.16 1.43-.43 2.05l1.23 1.23c.56-.98.9-2.09.9-3.28zm-4.02.17c0-.06.02-.11.02-.17V5c0-1.66-1.34-3-3-3S9 3.34 9 5v.18l5.98 5.99zM4.27 3L3 4.27l6.01 6.01V11c0 1.66 1.33 3 2.99 3 .22 0 .44-.03.65-.08l1.66 1.66c-.71.33-1.5.52-2.31.52-2.76 0-5.3-2.1-5.3-5.1H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c.91-.13 1.77-.45 2.54-.9L19.73 21 21 19.73 4.27 3z"/></svg>`;
+
             btnVoiceToggle.addEventListener('click', async () => {
                 if (!isVoiceActive) {
                     try {
@@ -466,10 +486,10 @@
                             video: false
                         });
                         isVoiceActive = true;
-                        btnVoiceToggle.textContent = '📞 Выйти из голоса';
+                        btnVoiceToggle.innerHTML = `${callEndIcon}<span>Выйти из голоса</span>`;
                         btnVoiceToggle.style.background = '#c93b5b';
-                        btnMuteToggle.style.display = 'inline-block';
-                        await postSync({ type: 'voice_ping', peerId: myPeerId });
+                        btnVoiceToggle.style.color = '#ffffff';
+                        btnMuteToggle.style.display = 'inline-flex';
                         pollRoomState();
                     } catch (err) {
                         alert('Нет доступа к микрофону: ' + err.message);
@@ -479,8 +499,9 @@
                     if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
                     Object.keys(peers).forEach(id => { peers[id].close(); delete peers[id]; });
                     remoteAudios.innerHTML = '';
-                    btnVoiceToggle.textContent = '🎙 Войти в голос';
+                    btnVoiceToggle.innerHTML = `${micOnIcon}<span>Войти в голос</span>`;
                     btnVoiceToggle.style.background = '#1e161a';
+                    btnVoiceToggle.style.color = '#f8c8d4';
                     btnMuteToggle.style.display = 'none';
                     await postSync({ type: 'voice_leave', peerId: myPeerId });
                     pollRoomState();
@@ -491,7 +512,7 @@
                 if (!localStream) return;
                 isMuted = !isMuted;
                 localStream.getAudioTracks().forEach(t => t.enabled = !isMuted);
-                btnMuteToggle.textContent = isMuted ? '🔊 Вкл. мик' : '🔇 Выкл. мик';
+                btnMuteToggle.innerHTML = isMuted ? `${micOnIcon}<span>Вкл. мик</span>` : `${micOffIcon}<span>Выкл. мик</span>`;
             });
             function createPeerConnection(remotePeerId) {
                 if (peers[remotePeerId]) peers[remotePeerId].close();
@@ -538,19 +559,37 @@
 
             async function pollRoomState() {
                 try {
-                    if (isVoiceActive) {
-                        postSync({ type: 'voice_ping', peerId: myPeerId });
-                    }
-                    const resp = await fetch(`${syncUrl}?last_msg_id=${lastMsgId}&since_ts=${lastSignalTs}`);
+                    const peerParam = isVoiceActive ? `&voice_peer=${encodeURIComponent(myPeerId)}` : '';
+                    const resp = await fetch(`${syncUrl}?last_msg_id=${lastMsgId}&since_ts=${lastSignalTs}${peerParam}`);
                     if (!resp.ok) return;
                     const data = await resp.json();
 
+                    if (data.room_deleted) {
+                        alert('Создатель комнаты завершил сессию.');
+                        window.location.href = '/';
+                        return;
+                    }
                     if (data.kicked) {
                         alert('Создатель комнаты исключил вас.');
                         window.location.href = '/';
                         return;
                     }
                     if (data.server_ts) lastSignalTs = data.server_ts;
+
+                    if (data.participants) {
+                        const counterEl = document.getElementById('participants-counter');
+                        const listEl = document.getElementById('participants-list');
+                        if (counterEl) counterEl.textContent = `${data.participants.length} / ${data.max_participants}`;
+                        if (listEl) {
+                            listEl.innerHTML = data.participants.map(p => {
+                                const hostTag = p.is_host ? `<span class="host-badge">ХОСТ</span>` : '';
+                                const kickBtn = (isHost && !p.is_host)
+                                    ? `<a href="/room/${roomUuid}/kick/${p.id}/" class="btn-kick" onclick="return confirm('Кикнуть ${p.username}?')">Кик</a>`
+                                    : '';
+                                return `<li class="participant-tag"><span>${p.username}</span>${hostTag}${kickBtn}</li>`;
+                            }).join('');
+                        }
+                    }
 
                     if (data.messages && data.messages.length > 0) {
                         const chatBox = document.getElementById('chat-box');
@@ -624,7 +663,7 @@
                 } catch (e) {}
             }
 
-            setInterval(pollRoomState, 1200);
+            setInterval(pollRoomState, 3500);
             pollRoomState();
         });
     </script>
