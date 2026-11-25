@@ -113,6 +113,11 @@ LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'profile'
 LOGOUT_REDIRECT_URL = '/'
 
+
+# ==========================================
+# SOCIAL AUTHENTICATION — GOOGLE + YANDEX
+# ==========================================
+
 INSTALLED_APPS += [
     'django.contrib.sites',
     'allauth',
@@ -133,28 +138,45 @@ MIDDLEWARE += [
     'allauth.account.middleware.AccountMiddleware',
 ]
 
+# Основные настройки авторизации
 SOCIALACCOUNT_LOGIN_ON_GET = True
 ACCOUNT_LOGOUT_ON_GET = True
+
 SOCIALACCOUNT_AUTO_SIGNUP = True
 SOCIALACCOUNT_EMAIL_AUTHENTICATION = True
 SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
 
+# Google и Яндекс
 SOCIALACCOUNT_PROVIDERS = {
-    'yandex': {
-        'APP': {
-            'client_id': os.getenv('YANDEX_CLIENT_ID', ''),
-            'secret': os.getenv('YANDEX_CLIENT_SECRET', ''),
-            'key': ''
-        }
-    },
     'google': {
         'APP': {
             'client_id': os.getenv('GOOGLE_CLIENT_ID', ''),
             'secret': os.getenv('GOOGLE_CLIENT_SECRET', ''),
-            'key': ''
+            'key': '',
         },
-        'SCOPE': ['profile', 'email'],
-        'AUTH_PARAMS': {'access_type': 'online'}
-    }
+        'SCOPE': [
+            'profile',
+            'email',
+        ],
+        'AUTH_PARAMS': {
+            'access_type': 'online',
+        },
+    },
+
+    'yandex': {
+        'APP': {
+            'client_id': os.getenv('YANDEX_CLIENT_ID', ''),
+            'secret': os.getenv('YANDEX_CLIENT_SECRET', ''),
+            'key': '',
+        },
+    },
 }
+
+# Проверка наличия ключей
+for provider in ['google', 'yandex']:
+    app = SOCIALACCOUNT_PROVIDERS[provider]['APP']
+
+    if not app['client_id'] or not app['secret']:
+        print(f'WARNING: {provider} OAuth credentials are missing!')
+
 
