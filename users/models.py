@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+from allauth.socialaccount.signals import pre_social_login
 
 
 class Profile(models.Model):
@@ -20,10 +21,26 @@ class Profile(models.Model):
 @receiver(post_save, sender=User)
 def create_user_profile(sender, instance, created, **kwargs):
     if created:
-        Profile.objects.create(user=instance, tag=f"@{instance.username}")
+        base_tag = f"@{instance.username}"[:30]
+        tag = base_tag
+        counter = 1
+        while Profile.objects.filter(tag=tag).exists():
+            suffix = str(counter)
+            tag = f"{base_tag[:30 - len(suffix)]}{suffix}"
+            counter += 1
+        Profile.objects.create(user=instance, tag=tag)
 
 
 @receiver(post_save, sender=User)
 def save_user_profile(sender, instance, **kwargs):
     if hasattr(instance, 'profile'):
         instance.profile.save()
+
+
+@receiver(pre_social_login)
+def auto_verify_social_email(sender, request, sociallogin, **kwargs):
+    if sociallogin.user and sociallogin.user.pk:
+        profile, _ = Profile.objects.get_or_create(user=sociallogin.user)
+        if not profile.is_email_verified:
+            profile.is_email_verified = True
+            profile.save()

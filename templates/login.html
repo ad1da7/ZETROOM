@@ -1,4 +1,5 @@
 {% load static %}
+{% load socialaccount %}
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -7,13 +8,13 @@
     <title>Zetroom | Вход</title>
 
     <link rel="stylesheet" href="{% static 'css/custom.css' %}">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://googleapis.com">
+    <link rel="preconnect" href="https://gstatic.com" crossorigin>
+    <link href="https://googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         @font-face {
             font-family: 'Pricedown';
-            src: url('https://fonts.cdnfonts.com/css/pricedown') format('woff2');
+            src: url('https://cdnfonts.com') format('woff2');
             font-weight: normal;
             font-style: normal;
         }
@@ -105,6 +106,81 @@
 
         .btn-submit:hover { background-color: #d65a7b; color: #ffffff; }
 
+        .social-divider {
+            display: flex;
+            align-items: center;
+            margin: 20px 0 16px;
+            gap: 12px;
+        }
+        .social-divider::before,
+        .social-divider::after {
+            content: "";
+            flex: 1;
+            height: 2px;
+            background-color: #1e161a;
+        }
+        .social-divider span {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #6b4c57;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+        }
+        .social-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .btn-social {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            width: 100%;
+            padding: 13px 16px;
+            background-color: #fce8ed;
+            color: #1e161a;
+            border: 2px solid #1e161a;
+            box-shadow: 4px 4px 0px #1e161a;
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 700;
+            font-size: 0.88rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            text-decoration: none;
+            transition: 0.15s;
+        }
+        .btn-social:hover {
+            background-color: #d65a7b;
+            color: #ffffff;
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0px #1e161a;
+        }
+        .badge-yandex {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 22px;
+            height: 22px;
+            background-color: #fc3f1d;
+            color: #ffffff;
+            font-weight: 900;
+            font-size: 0.85rem;
+            border: 1px solid #1e161a;
+        }
+        .badge-google {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 22px;
+            height: 22px;
+            background-color: #4285F4;
+            color: #ffffff;
+            font-weight: 900;
+            font-size: 0.85rem;
+            border: 1px solid #1e161a;
+        }
+
         .auth-footer {
             margin-top: 22px; padding-top: 16px; border-top: 1px solid #f2d5dc;
             text-align: center; font-size: 0.85rem; color: #6b4c57; font-weight: 600;
@@ -118,8 +194,6 @@
             color: #6b4c57; text-decoration: none; font-weight: 700;
         }
 
-
-        /* --- ИСПРАВЛЕННАЯ МОБИЛЬНАЯ ВЕРСИЯ --- */
         @media (max-width: 900px) {
             .navbar {
                 height: auto;
@@ -127,14 +201,13 @@
                 flex-wrap: wrap;
                 padding: 10px 16px;
                 gap: 10px;
-                justify-content: center; /* Центрируем элементы навбара */
+                justify-content: center;
             }
             .brand-logo img { height: 32px; }
-
             .nav-links {
                 flex-wrap: wrap;
                 width: 100%;
-                justify-content: center; /* Кнопки ровно по центру */
+                justify-content: center;
                 gap: 8px;
             }
             .nav-btn {
@@ -144,7 +217,6 @@
                 text-align: center;
                 white-space: normal;
             }
-
             .auth-wrapper { padding: 20px 12px; }
             .auth-box { padding: 24px; box-shadow: 6px 6px 0px #1e161a; }
             .auth-header h1 { font-size: 1.5rem; }
@@ -177,7 +249,6 @@
             <form method="post">
                 {% csrf_token %}
 
-                <!-- Поле 1: Имя -->
                 <div class="form-group">
                     <label for="{{ form.username.id_for_label }}">{{ form.username.label }}</label>
                     {{ form.username }}
@@ -186,7 +257,6 @@
                     {% endif %}
                 </div>
 
-                <!-- Поле 2: Пароль -->
                 <div class="form-group" style="margin-bottom: 0;">
                     <label for="{{ form.password.id_for_label }}">{{ form.password.label }}</label>
                     {{ form.password }}
@@ -195,11 +265,23 @@
                     {% endif %}
                 </div>
 
-                <!-- ССЫЛКА ЗАБЫЛИ ПАРОЛЬ (теперь она четко на месте) -->
                 <a href="{% url 'password_reset' %}" class="forgot-pass-link">Забыли пароль?</a>
 
                 <button type="submit" class="btn-submit">Войти в Zetroom</button>
             </form>
+
+            <div class="social-divider"><span>или</span></div>
+
+            <div class="social-buttons">
+                <a href="{% provider_login_url 'yandex' %}" class="btn-social">
+                    <span class="badge-yandex">Я</span>
+                    Войти через Яндекс
+                </a>
+                <a href="{% provider_login_url 'google' %}" class="btn-social">
+                    <span class="badge-google">G</span>
+                    Войти через Google
+                </a>
+            </div>
 
             <div class="auth-footer">
                 Нет аккаунта? <a href="{% url 'register' %}">Зарегистрироваться</a>

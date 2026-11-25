@@ -8,6 +8,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('rooms.urls')),
     path('account/', include('users.urls')),
+    path('accounts/', include('allauth.urls')),
 
     # --- СБРОС ПАРОЛЯ (один шаблон на все этапы) ---
     path('password-reset/', auth_views.PasswordResetView.as_view(
