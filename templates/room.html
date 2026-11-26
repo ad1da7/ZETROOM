@@ -556,16 +556,19 @@
                     const res = await fetch(syncUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
                     if (!res.ok) return;
                     const data = await res.json();
+
                     if (data.status === 'closed') { alert('Комната закрыта.'); window.location.href = '/'; return; }
                     if (data.status === 'banned') { alert('Вас исключили.'); window.location.href = '/'; return; }
 
                     latestHostState = data.video || latestHostState;
+
                     if (!isHost && viewerConnected && data.video && iframeEl && playerPlatform === 'rutube') {
                         const timeDiff = Math.abs((lastKnownTime || 0) - data.video.current_time);
                         const stateDiff = (data.video.is_playing !== isPlayerPlaying);
                         if (timeDiff > 2.0) sendIframeCommand(null, data.video.current_time);
                         if (stateDiff) sendIframeCommand(data.video.is_playing ? 'play' : 'pause', null);
                     }
+
                     document.getElementById('participants-counter').textContent = `${data.viewers_count} / {{ room.max_participants }}`;
 
                     const myUsername = "{{ user.username }}";
@@ -579,11 +582,28 @@
 
                     const vUsers = Object.entries(data.voice_state || {});
                     voiceStatusText.textContent = vUsers.length ? 'В голосе: ' + vUsers.map(entry => escapeHtml(entry[1].username) + (entry[1].muted ? ' [MUTE]' : '')).join(', ') : 'Голосовой чат пуст';
+
+                    // --- ИСПРАВЛЕННАЯ ЛОГИКА ИНИЦИАЦИИ ЗВОНКА ---
                     if (isVoiceActive) {
                         const activeIds = new Set(vUsers.map(entry => String(entry[0])));
-                        Object.keys(peers).forEach(uid => { if (!activeIds.has(uid)) removePeer(uid); });
-                        vUsers.forEach(entry => { const uid = String(entry[0]); if (uid !== myUserId && !peers[uid]) getOrCreatePeer(uid, Number(myUserId) > Number(uid)); });
+
+                        // Удаляем пиров, которые вышли из голоса
+                        Object.keys(peers).forEach(uid => {
+                            if (!activeIds.has(uid)) removePeer(uid);
+                        });
+
+                        // Создаем новых пиров
+                        vUsers.forEach(entry => {
+                            const uid = String(entry[0]);
+                            if (uid !== myUserId && !peers[uid]) {
+                                // Жесткое правило: кто имеет больший ID, тот инициирует звонок (отправляет offer)
+                                const isInitiator = Number(myUserId) > Number(uid);
+                                getOrCreatePeer(uid, isInitiator);
+                            }
+                        });
                     }
+                    // ----------------------------------------------
+
                     if (data.last_msg_id) lastMsgId = data.last_msg_id;
                     (data.messages || []).forEach(m => {
                         lastMsgId = Math.max(lastMsgId, m.id);
@@ -595,6 +615,7 @@
                         }
                     });
                 } catch (e) { console.error("Sync error", e); }
+            }
             }
             if (isHost && videoEl) { ['play', 'pause', 'seeked'].forEach(ev => videoEl.addEventListener(ev, syncTick)); }
             syncTick(); setInterval(syncTick, 2000);
