@@ -9,6 +9,7 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
 from django.db import transaction
+from django.conf import settings
 from .models import Room, Participant, Message
 
 try:
@@ -83,10 +84,7 @@ def index(request):
         rooms = rooms.filter(content_type=content_filter)
 
     return render(request, 'index.html', {
-        'rooms': rooms,
-        'query': query,
-        'age_filter': age_filter,
-        'content_filter': content_filter,
+        'rooms': rooms, 'query': query, 'age_filter': age_filter, 'content_filter': content_filter,
     })
 
 
@@ -99,8 +97,7 @@ def rooms_counts_api(request):
     return JsonResponse({'rooms': data})
 
 
-def all_rooms(request):
-    return redirect('index')
+def all_rooms(request): return redirect('index')
 
 
 @login_required
@@ -114,25 +111,24 @@ def create_room(request):
         is_private = request.POST.get('is_private') == 'on'
         content_type = request.POST.get('content_type', 'movie')
 
-        if not name:
-            return redirect('index')
+        if not name: return redirect('index')
 
         room = Room.objects.create(
             name=name, host=request.user, description=description,
             video_url=video_url, thumbnail_url=fetch_video_thumbnail(video_url),
             max_participants=max(1, min(max_participants, 100)),
-            is_18_plus=is_18_plus, is_private=is_private,
-            content_type=content_type,
+            is_18_plus=is_18_plus, is_private=is_private, content_type=content_type,
         )
         Participant.objects.get_or_create(room=room, user=request.user)
         return redirect('room_detail', room_uuid=room.uuid)
     return redirect('index')
+
+
 @login_required
 def join_room(request):
     if request.method == 'POST':
         q = request.POST.get('query', '').strip()
-        if not q:
-            return redirect('index')
+        if not q: return redirect('index')
         room = Room.objects.filter(access_code__iexact=q).first()
         if not room:
             try:
@@ -141,16 +137,14 @@ def join_room(request):
                 room = None
         if not room:
             room = Room.objects.filter(name__icontains=q, is_private=False).first()
-        if room:
-            return redirect('room_detail', room_uuid=room.uuid)
+        if room: return redirect('room_detail', room_uuid=room.uuid)
     return redirect('index')
 
 
 @login_required
 def room_detail(request, room_uuid):
     room = get_object_or_404(Room, uuid=room_uuid)
-    if room.banned_users.filter(id=request.user.id).exists():
-        return redirect('index')
+    if room.banned_users.filter(id=request.user.id).exists(): return redirect('index')
     room.cleanup_stale_participants()
     if room.participants.count() >= room.max_participants and not room.participants.filter(user=request.user).exists():
         return redirect('index')
@@ -204,7 +198,7 @@ def leave_room(request, room_uuid):
                 vs.pop(str(request.user.id), None)
                 room.voice_state = vs
                 room.save(update_fields=['voice_state'])
-    if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.content_type == 'application/json':
+    if request.method == 'POST':
         return JsonResponse({'status': 'left'})
     return redirect('index')
 
@@ -245,8 +239,7 @@ def room_sync_api(request, room_uuid):
         vs = {k: v for k, v in (room.voice_state or {}).items() if now_ts - v.get('updated_at', 0) < 12}
         v_act = payload.get('voice_action')
         if v_act == 'join':
-            vs[uid_str] = {'username': request.user.username, 'muted': bool(payload.get('muted', False)),
-                           'updated_at': now_ts}
+            vs[uid_str] = {'username': request.user.username, 'muted': bool(payload.get('muted', False)), 'updated_at': now_ts}
         elif v_act == 'leave':
             vs.pop(uid_str, None)
         elif uid_str in vs:
@@ -257,17 +250,14 @@ def room_sync_api(request, room_uuid):
 
         sigs = [s for s in (room.webrtc_signals or []) if now_ts - s.get('ts', 0) < 15]
         for s in (payload.get('signals') or []):
-            sigs.append(
-                {'from': uid_str, 'to': str(s.get('to')), 'type': s.get('type'), 'data': s.get('data'), 'ts': now_ts})
+            sigs.append({'from': uid_str, 'to': str(s.get('to')), 'type': s.get('type'), 'data': s.get('data'), 'ts': now_ts})
         my_sigs = [s for s in sigs if s.get('to') == uid_str]
         room.webrtc_signals = [s for s in sigs if s.get('to') != uid_str]
         room.save()
 
         last_id = int(request.GET.get('last_msg_id') or payload.get('last_msg_id') or 0)
         msgs = [{'id': m.id, 'user': m.user, 'text': m.text} for m in room.messages.filter(id__gt=last_id)[:50]]
-
         new_last_id = msgs[-1]['id'] if msgs else last_id
-
         parts = [{'id': p.user_id, 'username': p.user.username, 'is_host': p.user_id == room.host_id} for p in
                  room.participants.select_related('user').all() if p.user]
 
@@ -281,32 +271,3 @@ def room_sync_api(request, room_uuid):
             'messages': msgs,
             'last_msg_id': new_last_id,
         })
-
-from django.conf import settings
-from livekit import api as lk_api
-
-@login_required
-def livekit_token_api(request, room_uuid):
-    room = get_object_or_404(Room, uuid=room_uuid)
-    if room.banned_users.filter(id=request.user.id).exists():
-        return JsonResponse({'error': 'banned'}, status=403)
-
-    if not settings.LIVEKIT_URL or not settings.LIVEKIT_API_KEY or not settings.LIVEKIT_API_SECRET:
-        return JsonResponse({'error': 'LiveKit не настроен в settings.py'}, status=500)
-
-    token = (
-        lk_api.AccessToken(settings.LIVEKIT_API_KEY, settings.LIVEKIT_API_SECRET)
-        .with_identity(str(request.user.id))
-        .with_name(request.user.username)
-        .with_grants(lk_api.VideoGrants(
-            room_join=True,
-            room=str(room.uuid),
-            can_publish=True,
-            can_subscribe=True,
-        ))
-        .to_jwt()
-    )
-    return JsonResponse({
-        'token': token,
-        'url': settings.LIVEKIT_URL,
-    })
