@@ -69,6 +69,10 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
+        'OPTIONS': {
+            'timeout': 20,  # Ждать 20 секунд, прежде чем выдать ошибку
+            'init_command': "PRAGMA journal_mode=WAL;",  # Включаем WAL режим
+        },
     }
 }
 
