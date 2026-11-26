@@ -614,10 +614,14 @@
                             chatBox.appendChild(div); chatBox.scrollTop = chatBox.scrollHeight;
                         }
                     });
-                } catch (e) { console.error("Sync error", e); }
+                               } catch (e) { console.error("Sync error", e); }
             }
 
             if (isHost && videoEl) { ['play', 'pause', 'seeked'].forEach(ev => videoEl.addEventListener(ev, syncTick)); }
+
+            syncTick();
+            setInterval(syncTick, 2000);
+        });
     </script>
 </body>
 </html>
