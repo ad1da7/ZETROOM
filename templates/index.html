@@ -22,32 +22,39 @@
             overflow-x: hidden;
         }
 
-        /* НАВБАР С ПАТТЕРНОМ */
+        /* НАВБАР БЕЗ ПАТТЕРНА */
         .navbar {
-            position: sticky; top: 0; z-index: 100;
+            position: sticky;
+            top: 0;
+            margin-top: -55px; /* Убирает розовую щель сверху в локальной версии */
+            z-index: 100;
             background-color: #1e161a;
-            background-image: url("data:image/svg+xml,%3Csvg width='140' height='70' xmlns='http://www.w3.org/2000/svg'%3E%3Ctext x='50%25' y='45%25' font-family='Oswald, sans-serif' font-size='24' font-weight='bold' fill='%233d2c34' text-anchor='middle' transform='rotate(-15 70 35)' opacity='0.75'%3EZetRoom%3C/text%3E%3C/svg%3E");
-            background-repeat: repeat;
-            border-bottom: 3px solid #d65a7b; padding: 0 32px; height: 68px;
-            display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 3px solid #d65a7b;
+            padding: 0 32px;
+            height: 68px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
-        .brand-logo { display: flex; align-items: center; text-decoration: none; height: 100%; position: relative; z-index: 2; }
+
+        .brand-logo { display: flex; align-items: center; text-decoration: none; height: 100%; }
         .brand-logo img { height: 44px; width: auto; object-fit: contain; display: block; transition: transform 0.15s ease; }
         .brand-logo:hover img { transform: scale(1.03); }
 
-        .nav-links { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; position: relative; z-index: 2; }
+        .nav-links { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 
         .nav-btn {
             text-decoration: none; background: transparent; color: #f8c8d4;
-            font-family: 'Oswald', sans-serif; font-size: 0.95rem; font-weight: 600;
+            font-family: 'Pricedown', sans-serif; /* Поставил твой основной шрифт */
+            font-size: 1rem; font-weight: 600;
             letter-spacing: 1px; text-transform: uppercase; padding: 10px 18px;
-            cursor: pointer; border: 1px solid #3d2c34; transition: all 0.15s ease;
+            cursor: pointer; border: 2px solid transparent; transition: all 0.15s ease;
             white-space: nowrap;
         }
-        .nav-btn:hover, .nav-btn.active { background-color: #f8c8d4; color: #1e161a; border-color: #f8c8d4; }
-        .nav-btn-accent { background-color: #d65a7b; color: #ffffff; border-color: #d65a7b; }
-        .nav-btn-accent:hover { background-color: #b84463; color: #ffffff; border-color: #b84463; }
-        .nav-btn-admin { background-color: #2d2026; color: #f8c8d4; border-color: #f8c8d4; }
+        .nav-btn:hover, .nav-btn.active { background-color: #f8c8d4; color: #1e161a; }
+        .nav-btn-accent { background-color: #d65a7b; color: #ffffff; }
+        .nav-btn-accent:hover { background-color: #b84463; color: #ffffff; }
+        .nav-btn-admin { background-color: transparent; color: #f8c8d4; border: 2px solid #f8c8d4; }
         .nav-btn-admin:hover { background-color: #f8c8d4; color: #1e161a; }
 
         .nav-btn-friends {
@@ -264,7 +271,7 @@
     </style>
 </head>
 <body>
-    <nav class="navbar">
+    <    <nav class="navbar">
         <a href="{% url 'index' %}" class="brand-logo"><img src="{% static 'images/logo.png' %}" alt="Zetroom"></a>
         <div class="nav-links">
             <a href="{% url 'index' %}" class="nav-btn active">Главная</a>
@@ -272,14 +279,18 @@
                 <button type="button" class="nav-btn nav-btn-accent" onclick="document.getElementById('createRoomModal').style.display='flex'">+ Создать</button>
                 <button type="button" class="nav-btn" onclick="document.getElementById('joinRoomModal').style.display='flex'">Присоединиться</button>
 
-                <button type="button" class="friends-btn" onclick="document.getElementById('friendsModal').style.display='flex'; loadFriends();">
-    <svg style="width:18px;height:18px;fill:currentColor;margin-right:6px;vertical-align:middle;margin-top:-2px;" viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
-    Друзья
+            <!-- Кнопка друзей -->
+                <button type="button" class="nav-btn" onclick="document.getElementById('friendsModal').style.display='flex'; if(typeof loadFriendsList === 'function') { loadFriendsList(); loadFriendRequests(); }" style="display: inline-flex; align-items: center; gap: 6px; font-family: 'Pricedown', sans-serif; font-size: 0.95rem; letter-spacing: 1px;">
+                    <svg style="width: 18px; height: 18px; fill: currentColor;" viewBox="0 0 24 24">
+                        <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/>
+                    </svg>
+                    Друзья
                 </button>
 
                 {% if user.is_staff or user.is_superuser %}
                     <a href="/admin/" class="nav-btn nav-btn-admin">Админ-панель</a>
                 {% endif %}
+
                 <a href="{% url 'profile' %}" class="profile-chip">
                     {% if user.profile.avatar %}
                         <img src="{{ user.profile.avatar.url }}" alt="Аватар" class="chip-avatar">

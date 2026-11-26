@@ -198,8 +198,11 @@ def leave_room(request, room_uuid):
                 vs.pop(str(request.user.id), None)
                 room.voice_state = vs
                 room.save(update_fields=['voice_state'])
+
+    # Если это POST-запрос (от формы), перенаправляем на главную
     if request.method == 'POST':
-        return JsonResponse({'status': 'left'})
+        return redirect('index')
+
     return redirect('index')
 
 
