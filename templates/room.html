@@ -198,8 +198,15 @@
     {% if user.is_authenticated %}{{ user.id|json_script:"current-user-id" }}{% else %}{{ 0|json_script:"current-user-id" }}{% endif %}
     {% if user == room.host %}{{ True|json_script:"is-host" }}{% else %}{{ False|json_script:"is-host" }}{% endif %}
 
-    <script>
-        // Функция для получения CSRF токена
+        <script>
+        function shareRoom() {
+            const roomUuid = JSON.parse(document.getElementById('room-uuid').textContent);
+            navigator.clipboard.writeText(window.location.origin + '/room/' + roomUuid + '/').then(() => {
+                const toast = document.getElementById("toast"); toast.className = "show";
+                setTimeout(function(){ toast.className = toast.className.replace("show", ""); }, 3000);
+            }).catch(err => alert('Ошибка: ' + err));
+        }
+        function escapeHtml(str) { const div = document.createElement('div'); div.textContent = str == null ? '' : String(str); return div.innerHTML; }
         function getCookie(name) {
             let cookieValue = null;
             if (document.cookie && document.cookie !== '') {
@@ -212,30 +219,17 @@
             return cookieValue;
         }
 
-        function shareRoom() {
-            const roomUuid = JSON.parse(document.getElementById('room-uuid').textContent);
-            navigator.clipboard.writeText(window.location.origin + '/room/' + roomUuid + '/').then(() => {
-                const toast = document.getElementById("toast"); toast.className = "show";
-                setTimeout(function(){ toast.className = toast.className.replace("show", ""); }, 3000);
-            }).catch(err => alert('Ошибка: ' + err));
-        }
-        function escapeHtml(str) { const div = document.createElement('div'); div.textContent = str == null ? '' : String(str); return div.innerHTML; }
-
-        // --- ДРУЗЬЯ И ПРОФИЛЬ ---
         async function loadFriends() {
             const container = document.getElementById('friends-modal-body');
+            if (!container) return;
             try {
-                // ИЗМЕНЕНО: Твой URL друзей
-                const res = await fetch('/friends/api/');
-                if (!res.ok) { container.innerHTML = '<p>Ошибка загрузки.</p>'; return; }
-                const friends = await res.json(); // У тебя возвращается просто массив
-
-                if (!friends || friends.length === 0) { container.innerHTML = '<p>Список друзей пуст.</p>'; return; }
+                const res = await fetch('/account/friends/api/');
+                if (!res.ok) { container.innerHTML = '<p>Перейдите в профиль.</p>'; return; }
+                const data = await res.json();
+                const friends = data.friends || [];
+                if (!friends.length) { container.innerHTML = '<p>Список друзей пуст.</p>'; return; }
                 container.innerHTML = '<ul class="friends-list">' + friends.map(f =>
-                    `<li><a href="/profile/${encodeURIComponent(f.username)}/" class="friend-item">
-                        <div class="friend-avatar">${escapeHtml(f.username || '?')[0].toUpperCase()}</div>
-                        <span class="friend-name">${escapeHtml(f.username)}</span>
-                    </a></li>`
+                    `<li><a href="/account/profile/${encodeURIComponent(f.username)}/" class="friend-item"><div class="friend-avatar">${escapeHtml(f.username || '?')[0].toUpperCase()}</div><span class="friend-name">${escapeHtml(f.username)}</span></a></li>`
                 ).join('') + '</ul>';
             } catch (e) { container.innerHTML = '<p>Ошибка загрузки друзей.</p>'; }
         }
@@ -251,8 +245,6 @@
             }
 
             try {
-                // Так как у нас нет API для получения статуса дружбы (только POST для переключения),
-                // мы просто покажем кнопку. Если уже друзья — бэкенд вернет 'removed' при клике, если нет — 'requested'
                 content.innerHTML = `
                     <div class="friend-avatar" style="width: 80px; height: 80px; font-size: 2rem; margin: 0 auto 15px auto;">${escapeHtml(username)[0].toUpperCase()}</div>
                     <h2 style="font-family: 'Pricedown'; margin-bottom: 5px;">${escapeHtml(username)}</h2>
@@ -264,19 +256,13 @@
 
         async function toggleFriend(username) {
             try {
-                // ИЗМЕНЕНО: Твой URL для добавления/удаления друга
-                const res = await fetch(`/friend/toggle/${encodeURIComponent(username)}/`, {
+                const res = await fetch(`/account/friend-request/send/${encodeURIComponent(username)}/`, {
                     method: 'POST',
                     headers: { 'X-CSRFToken': getCookie('csrftoken'), 'Content-Type': 'application/json' }
                 });
                 const data = await res.json();
                 if (data.status === 'ok') {
-                    let msg = 'Готово!';
-                    if (data.action === 'requested') msg = 'Заявка отправлена!';
-                    else if (data.action === 'removed') msg = 'Удален из друзей.';
-                    else if (data.action === 'cancelled') msg = 'Заявка отменена.';
-                    else if (data.action === 'accepted') msg = 'Теперь вы друзья!';
-                    alert(msg);
+                    alert(data.message || 'Готово!');
                     document.getElementById('userProfileModal').style.display = 'none';
                 } else {
                     alert(data.message || 'Ошибка');
@@ -366,29 +352,11 @@
 
             const rtcConfig = {
                 iceServers: [
-                    {
-                        urls: "stun:stun.relay.metered.ca:80",
-                    },
-                    {
-                        urls: "turn:global.relay.metered.ca:80",
-                        username: "8e79e590d764f3a881c11d3c",
-                        credential: "z1Y2gSf8yDCkj3tf",
-                    },
-                    {
-                        urls: "turn:global.relay.metered.ca:80?transport=tcp",
-                        username: "8e79e590d764f3a881c11d3c",
-                        credential: "z1Y2gSf8yDCkj3tf",
-                    },
-                    {
-                        urls: "turn:global.relay.metered.ca:443",
-                        username: "8e79e590d764f3a881c11d3c",
-                        credential: "z1Y2gSf8yDCkj3tf",
-                    },
-                    {
-                        urls: "turns:global.relay.metered.ca:443?transport=tcp",
-                        username: "8e79e590d764f3a881c11d3c",
-                        credential: "z1Y2gSf8yDCkj3tf",
-                    },
+                    { urls: "stun:stun.relay.metered.ca:80" },
+                    { urls: "turn:global.relay.metered.ca:80", username: "8e79e590d764f3a881c11d3c", credential: "z1Y2gSf8yDCkj3tf" },
+                    { urls: "turn:global.relay.metered.ca:80?transport=tcp", username: "8e79e590d764f3a881c11d3c", credential: "z1Y2gSf8yDCkj3tf" },
+                    { urls: "turn:global.relay.metered.ca:443", username: "8e79e590d764f3a881c11d3c", credential: "z1Y2gSf8yDCkj3tf" },
+                    { urls: "turns:global.relay.metered.ca:443?transport=tcp", username: "8e79e590d764f3a881c11d3c", credential: "z1Y2gSf8yDCkj3tf" }
                 ]
             };
 
@@ -463,33 +431,41 @@
                 }
                 return pc;
             }
-                        async function handleVoiceSignal(data) {
+            async function handleVoiceSignal(data) {
                 if (!data || !data.type || !data.type.startsWith('voice_')) return;
-                const remoteId = String(data.sender || data.user_id || ''); if (!remoteId || remoteId === myUserId) return;
+                const remoteId = String(data.sender || data.user_id || '');
+                if (!remoteId || remoteId === myUserId) return;
                 try {
                     if (data.type === 'voice_join') {
-                        if (!isVoiceActive) return; if (peers[remoteId]) removePeer(remoteId); getOrCreatePeer(remoteId, true);
+                        if (!isVoiceActive) return;
+                        if (peers[remoteId]) removePeer(remoteId);
+                        // Если мы получили join, значит второй пользователь хочет общаться.
+                        // Инициируем звонок только если наш ID больше (правило Perfect Negotiation)
+                        const isInitiator = Number(myUserId) > Number(remoteId);
+                        getOrCreatePeer(remoteId, isInitiator);
                     } else if (data.type === 'voice_offer') {
-                        if (!isVoiceActive) return; if (peers[remoteId]) removePeer(remoteId);
-                        const pc = getOrCreatePeer(remoteId, false); await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
+                        if (!isVoiceActive) return;
+                        if (peers[remoteId]) removePeer(remoteId);
+                        const pc = getOrCreatePeer(remoteId, false);
+                        await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
                         await flushPendingCandidates(remoteId, pc); const ans = await pc.createAnswer(); await pc.setLocalDescription(ans);
                         sendVoiceSignal({ type: 'voice_answer', target: remoteId, user_id: myUserId, answer: pc.localDescription });
                     } else if (data.type === 'voice_answer') {
-                        const pc = peers[remoteId]; if (!pc) return;
-
-                        // --- ДОБАВЛЕНА ПРОВЕРКА ---
+                        const pc = peers[remoteId];
+                        if (!pc) return;
                         if (pc.signalingState !== 'have-local-offer') {
                             console.warn("Ignored voice_answer: wrong state", pc.signalingState);
                             return;
                         }
-                        // ---------------------------
-
-                        await pc.setRemoteDescription(new RTCSessionDescription(data.answer)); await flushPendingCandidates(remoteId, pc);
+                        await pc.setRemoteDescription(new RTCSessionDescription(data.answer));
+                        await flushPendingCandidates(remoteId, pc);
                     } else if (data.type === 'voice_ice') {
                         const pc = peers[remoteId]; if (!pc) return;
                         if (pc.remoteDescription && pc.remoteDescription.type) await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
                         else { pendingCandidates[remoteId] = pendingCandidates[remoteId] || []; pendingCandidates[remoteId].push(data.candidate); }
-                    } else if (data.type === 'voice_leave') { removePeer(remoteId); }
+                    } else if (data.type === 'voice_leave') {
+                        removePeer(remoteId);
+                    }
                 } catch (err) { console.error("[WebRTC] Ошибка:", err); }
             }
             function connectVoiceSocket() {
@@ -556,19 +532,16 @@
                     const res = await fetch(syncUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
                     if (!res.ok) return;
                     const data = await res.json();
-
                     if (data.status === 'closed') { alert('Комната закрыта.'); window.location.href = '/'; return; }
                     if (data.status === 'banned') { alert('Вас исключили.'); window.location.href = '/'; return; }
 
                     latestHostState = data.video || latestHostState;
-
                     if (!isHost && viewerConnected && data.video && iframeEl && playerPlatform === 'rutube') {
                         const timeDiff = Math.abs((lastKnownTime || 0) - data.video.current_time);
                         const stateDiff = (data.video.is_playing !== isPlayerPlaying);
                         if (timeDiff > 2.0) sendIframeCommand(null, data.video.current_time);
                         if (stateDiff) sendIframeCommand(data.video.is_playing ? 'play' : 'pause', null);
                     }
-
                     document.getElementById('participants-counter').textContent = `${data.viewers_count} / {{ room.max_participants }}`;
 
                     const myUsername = "{{ user.username }}";
@@ -583,26 +556,22 @@
                     const vUsers = Object.entries(data.voice_state || {});
                     voiceStatusText.textContent = vUsers.length ? 'В голосе: ' + vUsers.map(entry => escapeHtml(entry[1].username) + (entry[1].muted ? ' [MUTE]' : '')).join(', ') : 'Голосовой чат пуст';
 
-                    // --- ИСПРАВЛЕННАЯ ЛОГИКА ИНИЦИАЦИИ ЗВОНКА ---
+                    // --- ПРАВИЛЬНАЯ ЛОГИКА ИНИЦИАЦИИ ---
                     if (isVoiceActive) {
                         const activeIds = new Set(vUsers.map(entry => String(entry[0])));
-
-                        // Удаляем пиров, которые вышли из голоса
                         Object.keys(peers).forEach(uid => {
                             if (!activeIds.has(uid)) removePeer(uid);
                         });
-
-                        // Создаем новых пиров
                         vUsers.forEach(entry => {
                             const uid = String(entry[0]);
                             if (uid !== myUserId && !peers[uid]) {
-                                // Жесткое правило: кто имеет больший ID, тот инициирует звонок (отправляет offer)
                                 const isInitiator = Number(myUserId) > Number(uid);
-                                getOrCreatePeer(uid, isInitiator);
+                                if (isInitiator) getOrCreatePeer(uid, true);
+                                else getOrCreatePeer(uid, false);
                             }
                         });
                     }
-                    // ----------------------------------------------
+                    // ----------------------------------
 
                     if (data.last_msg_id) lastMsgId = data.last_msg_id;
                     (data.messages || []).forEach(m => {
@@ -614,11 +583,10 @@
                             chatBox.appendChild(div); chatBox.scrollTop = chatBox.scrollHeight;
                         }
                     });
-                               } catch (e) { console.error("Sync error", e); }
+                } catch (e) { console.error("Sync error", e); }
             }
 
             if (isHost && videoEl) { ['play', 'pause', 'seeked'].forEach(ev => videoEl.addEventListener(ev, syncTick)); }
-
             syncTick();
             setInterval(syncTick, 2000);
         });
