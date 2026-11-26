@@ -431,11 +431,15 @@
             let latestHostState = { is_playing: false, current_time: 0 };
             let isRutubeReady = false;
 
-             function detectAndBuildIframe(url) {
-                if (url.includes('rutube.ru/video/')) {
-                    playerPlatform = 'rutube';
-                    const m = url.match(/rutube\.ru\/video\/([a-zA-Z0-9]+)/);
-                    return m ? 'https://rutube.ru/play/embed/' + m[1] : url;
+            function detectAndBuildIframe(url) {
+             if (url.includes('rutube.ru/video/')) {
+                 playerPlatform = 'rutube';
+                 const m = url.match(/rutube\.ru\/video\/([a-zA-Z0-9]+)/);
+                 return m ? 'https://rutube.ru/play/embed/' + m[1] : url;
+             }
+             return url;
+         }
+
 
 
             function sendIframeCommand(cmd, timeVal) {
