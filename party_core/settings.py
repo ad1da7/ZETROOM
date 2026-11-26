@@ -71,7 +71,8 @@ DATABASES = {
         'NAME': BASE_DIR / 'db.sqlite3',
         'OPTIONS': {
             'timeout': 20,  # Ждать 20 секунд, прежде чем выдать ошибку
-            'init_command': "PRAGMA journal_mode=WAL;",  # Включаем WAL режим
+            'init_command': "PRAGMA journal_mode=WAL;",  # Включаем режим WAL
+            'transaction_mode': 'IMMEDIATE', # Брать блокировку сразу
         },
     }
 }
