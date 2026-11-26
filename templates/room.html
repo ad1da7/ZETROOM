@@ -94,7 +94,12 @@
     <nav class="navbar">
         <a href="{% url 'index' %}" class="brand-logo"><img src="{% static 'images/logo.png' %}" alt="Zetroom"></a>
         <div class="nav-right">
-            <button type="button" class="friends-btn" onclick="document.getElementById('friendsModal').style.display='flex'; loadFriends();">👥 Друзья</button>
+            <button type="button" class="friends-btn" onclick="document.getElementById('friendsModal').style.display='flex'; loadFriends();" style="display: inline-flex; align-items: center; gap: 8px; font-family: 'Pricedown', sans-serif; text-transform: uppercase;">
+                 <svg style="width: 18px; height: 18px; fill: currentColor;" viewBox="0 0 24 24">
+                 <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/>
+                 </svg>
+                 <span>Друзья</span>
+            </button>
             <div class="sync-badge"><span class="sync-dot"></span> Zetroom SYNC</div>
             <form action="{% url 'leave_room' room.uuid %}" method="post" style="margin: 0;">
                 {% csrf_token %}
