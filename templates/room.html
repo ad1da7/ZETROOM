@@ -556,22 +556,22 @@
                     const vUsers = Object.entries(data.voice_state || {});
                     voiceStatusText.textContent = vUsers.length ? 'В голосе: ' + vUsers.map(entry => escapeHtml(entry[1].username) + (entry[1].muted ? ' [MUTE]' : '')).join(', ') : 'Голосовой чат пуст';
 
-                    // --- ПРАВИЛЬНАЯ ЛОГИКА ИНИЦИАЦИИ ---
+                    // --- ПРИНУДИТЕЛЬНАЯ СИНХРОНИЗАЦИЯ ГОЛОСА ---
                     if (isVoiceActive) {
                         const activeIds = new Set(vUsers.map(entry => String(entry[0])));
-                        Object.keys(peers).forEach(uid => {
-                            if (!activeIds.has(uid)) removePeer(uid);
-                        });
+                        Object.keys(peers).forEach(uid => { if (!activeIds.has(uid)) removePeer(uid); });
+
                         vUsers.forEach(entry => {
                             const uid = String(entry[0]);
+                            // Если это не я и пира еще нет — создаем
                             if (uid !== myUserId && !peers[uid]) {
+                                // Тот, у кого ID больше, всегда звонит первым
                                 const isInitiator = Number(myUserId) > Number(uid);
-                                if (isInitiator) getOrCreatePeer(uid, true);
-                                else getOrCreatePeer(uid, false);
+                                getOrCreatePeer(uid, isInitiator);
                             }
                         });
                     }
-                    // ----------------------------------
+                    // ------------------------------------------
 
                     if (data.last_msg_id) lastMsgId = data.last_msg_id;
                     (data.messages || []).forEach(m => {
