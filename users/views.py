@@ -41,7 +41,6 @@ def register_view(request):
 
             return redirect('verify_email')
         else:
-            # ЭТО ВЫВЕДЕТ ОШИБКИ В ТЕРМИНАЛ, ЧТОБЫ ТЫ УВИДЕЛ ПРИЧИНУ
             print("ФОРМА НЕ ПРОШЛА ВАЛИДАЦИЮ. ОШИБКИ:", form.errors)
     else:
         form = CustomRegisterForm()
@@ -83,7 +82,15 @@ def profile_view(request):
     if request.method == 'POST':
         form = ProfileUpdateForm(request.POST, request.FILES, instance=profile)
         if form.is_valid():
+            # Сначала сохраняем профиль (аватар, тег и т.д.)
             form.save()
+
+            # Обновляем никнейм в модели User
+            new_username = form.cleaned_data.get('username')
+            if new_username and new_username != request.user.username:
+                request.user.username = new_username
+                request.user.save()
+
             return redirect('profile')
     else:
         form = ProfileUpdateForm(instance=profile)

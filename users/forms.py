@@ -20,6 +20,9 @@ class CustomRegisterForm(UserCreationForm):
 
 
 class ProfileUpdateForm(forms.ModelForm):
+    # Добавляем поле username из модели User
+    username = forms.CharField(max_length=150, required=True, label="Никнейм")
+
     class Meta:
         model = Profile
         fields = ['avatar', 'background_image', 'tag', 'age', 'bio']
@@ -28,6 +31,19 @@ class ProfileUpdateForm(forms.ModelForm):
             'age': forms.NumberInput(attrs={'min': 1, 'max': 120, 'placeholder': 'Ваш возраст'}),
             'bio': forms.Textarea(attrs={'rows': 4, 'placeholder': 'Расскажите о себе...'}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Заполняем поле username текущим ником пользователя
+        if self.instance and self.instance.user:
+            self.fields['username'].initial = self.instance.user.username
+
+    def clean_username(self):
+        username = self.cleaned_data.get('username')
+        # Проверяем, не занят ли ник кем-то другим (исключая текущего пользователя)
+        if User.objects.filter(username=username).exclude(id=self.instance.user.id).exists():
+            raise forms.ValidationError("Этот никнейм уже занят. Выберите другой.")
+        return username
 
     def clean_tag(self):
         tag = self.cleaned_data.get('tag')
