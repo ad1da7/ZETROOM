@@ -433,7 +433,7 @@
             }
             async function handleVoiceSignal(data) {
                 if (!data || !data.type || !data.type.startsWith('voice_')) return;
-                const remoteId = String(data.sender || data.user_id || '');
+                const remoteId = String(data.user_id || data.sender || '');
                 if (!remoteId || remoteId === myUserId) return;
                 try {
                     if (data.type === 'voice_join') {
