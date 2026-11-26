@@ -13,6 +13,7 @@ class Profile(models.Model):
     age = models.PositiveIntegerField("Возраст", blank=True, null=True)
     bio = models.TextField("О себе", max_length=500, blank=True)
     is_email_verified = models.BooleanField("Почта подтверждена", default=False)
+    friends = models.ManyToManyField(User, blank=True, related_name='zetroom_friends')
 
     def __str__(self):
         return f"Профиль {self.user.username}"
@@ -44,3 +45,27 @@ def auto_verify_social_email(sender, request, sociallogin, **kwargs):
         if not profile.is_email_verified:
             profile.is_email_verified = True
             profile.save()
+
+
+class FriendRequest(models.Model):
+    PENDING = 'pending'
+    ACCEPTED = 'accepted'
+    DECLINED = 'declined'
+    STATUS_CHOICES = [
+        (PENDING, 'Ожидает ответа'),
+        (ACCEPTED, 'Принята'),
+        (DECLINED, 'Отклонена'),
+    ]
+    sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_friend_requests')
+    recipient = models.ForeignKey(User, on_delete=models.CASCADE, related_name='received_friend_requests')
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default=PENDING)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['sender', 'recipient'], name='unique_friend_request_pair'),
+        ]
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'{self.sender} -> {self.recipient} ({self.status})'

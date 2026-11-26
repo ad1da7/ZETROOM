@@ -1,10 +1,10 @@
 from django.db import models
+from django.utils import timezone
+from datetime import timedelta
 import uuid
 import random
 import string
 from django.contrib.auth.models import User
-from django.utils import timezone
-from datetime import timedelta
 
 
 def generate_room_code():
@@ -25,31 +25,46 @@ class Room(models.Model):
     access_code = models.CharField(max_length=10, blank=True, default='')
     max_participants = models.PositiveIntegerField(default=10)
     is_18_plus = models.BooleanField(default=False)
-    banned_users = models.ManyToManyField(User, related_name='banned_rooms', blank=True)
 
-    # Тип контента (Фильм, Сериал и т.д.)
     CONTENT_CHOICES = [
         ('movie', 'Фильм'),
         ('series', 'Сериал'),
         ('cartoon', 'Мультик'),
         ('cartoon_series', 'Мультсериал'),
+        ('video', 'Видео'),
+        ('stream', 'Стрим'),
     ]
     content_type = models.CharField(max_length=20, choices=CONTENT_CHOICES, default='movie')
 
-    # Синхронизация
+    banned_users = models.ManyToManyField(User, related_name='banned_rooms', blank=True)
+
+    # Состояние общего плеера и голосовой комнаты.
     is_playing = models.BooleanField(default=False)
-    current_time = models.FloatField(default=0.0)
+    current_time = models.FloatField(default=0)
     voice_state = models.JSONField(default=dict, blank=True)
     webrtc_signals = models.JSONField(default=list, blank=True)
 
     def save(self, *args, **kwargs):
         if self.is_private and not self.access_code:
             self.access_code = generate_room_code()
+        elif not self.is_private:
+            self.access_code = ''
         super().save(*args, **kwargs)
 
-    def cleanup_stale_participants(self, timeout_seconds=12):
-        cutoff = timezone.now() - timedelta(seconds=timeout_seconds)
-        self.participants.filter(last_seen__lt=cutoff).exclude(user=self.host).delete()
+    def cleanup_stale_participants(self, timeout_seconds=45):
+        threshold = timezone.now() - timedelta(seconds=timeout_seconds)
+        self.participants.filter(last_seen__lt=threshold).delete()
+
+        # Удаляем устаревшие записи голосового состояния.
+        now_ts = timezone.now().timestamp()
+        self.voice_state = {
+            key: value for key, value in (self.voice_state or {}).items()
+            if now_ts - float(value.get('updated_at', 0)) < 12
+        }
+        self.webrtc_signals = [
+            signal for signal in (self.webrtc_signals or [])
+            if now_ts - float(signal.get('ts', 0)) < 15
+        ]
 
     def __str__(self):
         return self.name
@@ -59,7 +74,12 @@ class Participant(models.Model):
     room = models.ForeignKey(Room, on_delete=models.CASCADE, related_name='participants')
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
     joined_at = models.DateTimeField(auto_now_add=True)
-    last_seen = models.DateTimeField(auto_now=True)
+    last_seen = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['room', 'user'], name='unique_room_participant')
+        ]
 
     def __str__(self):
         return f"{self.user} в {self.room.name}"

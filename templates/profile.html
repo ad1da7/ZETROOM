@@ -78,6 +78,12 @@
 
         input:focus, textarea:focus { border-color: #d94e78; background-color: #ffffff; }
 
+        input:disabled {
+            background-color: #e5d5da;
+            color: #52525b;
+            cursor: not-allowed;
+        }
+
         .btn-save {
             width: 100%; padding: 14px; border: none; background-color: #141416; color: #ffffff;
             font-family: 'Pricedown', sans-serif; text-transform: uppercase; letter-spacing: 1.5px;
@@ -85,7 +91,6 @@
         }
         .btn-save:hover { background-color: #d94e78; }
 
-        /* Стили для ошибок формы */
         .errorlist {
             list-style: none;
             color: #dc2626;
@@ -131,9 +136,15 @@
                 {% endif %}
             </div>
 
-            <!-- ВЫВОДИМ ОСТАЛЬНЫЕ ПОЛЯ (АВАТАР, ТЕГ, ВОЗРАСТ И Т.Д.) -->
+            <!-- ВОЗРАСТ ТОЛЬКО ДЛЯ ПРОСМОТРА (НЕ ИЗМЕНЯЕТСЯ) -->
+            <div class="form-group">
+                <label>Ваш возраст (указывается при регистрации)</label>
+                <input type="text" value="{{ profile.age|default:'Не указан' }}" disabled>
+            </div>
+
+            <!-- ВЫВОДИМ ОСТАЛЬНЫЕ ПОЛЯ (АВАТАР, ФОН, ТЕГ, О СЕБЕ) -->
             {% for field in form %}
-                {% if field.name != 'username' %}
+                {% if field.name != 'username' and field.name != 'age' %}
                     <div class="form-group">
                         <label for="{{ field.id_for_label }}">{{ field.label }}</label>
                         {{ field }}

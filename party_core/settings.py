@@ -180,3 +180,11 @@ for provider in ['google', 'yandex']:
         print(f'WARNING: {provider} OAuth credentials are missing!')
 
 
+import os
+from dotenv import load_dotenv
+load_dotenv()
+
+# LiveKit voice chat credentials (set in .env; never commit real secrets).
+LIVEKIT_URL = os.getenv('LIVEKIT_URL', '').strip()
+LIVEKIT_API_KEY = os.getenv('LIVEKIT_API_KEY', '').strip()
+LIVEKIT_API_SECRET = os.getenv('LIVEKIT_API_SECRET', '').strip()

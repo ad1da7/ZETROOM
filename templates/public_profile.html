@@ -1,0 +1,218 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZetRoom | {{ target_user.username }}</title>
+    <link rel="stylesheet" href="{% static 'css/custom.css' %}">
+    <link href="https://googleapis.com" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; border-radius: 0 !important; }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background-color: #f4e6ea;
+            color: #141416;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background-color: rgba(255, 255, 255, 0.96);
+            border: 3px solid #141416;
+            box-shadow: 10px 10px 0px #141416;
+            padding: 40px;
+            width: 100%;
+            max-width: 520px;
+        }
+
+        .top-nav {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 24px; padding-bottom: 16px; border-bottom: 2px solid #141416;
+        }
+
+        .back-link {
+            color: #141416; text-decoration: none; font-family: 'Pricedown', sans-serif;
+            text-transform: uppercase; letter-spacing: 1px; font-size: 0.95rem;
+        }
+        .back-link:hover { color: #d94e78; }
+
+        .btn-cabinet {
+            background: #141416; border: none; color: #ffffff; padding: 8px 16px;
+            font-family: 'Pricedown', sans-serif; text-transform: uppercase; letter-spacing: 1px;
+            font-size: 0.85rem; text-decoration: none; cursor: pointer;
+        }
+        .btn-cabinet:hover { background-color: #d94e78; }
+
+        .profile-header { text-align: center; margin-bottom: 28px; }
+
+        #avatar-preview-wrapper {
+            width: 110px; height: 110px; margin: 0 auto 14px;
+            border: 3px solid #141416; box-shadow: 4px 4px 0px #d94e78;
+        }
+
+        .avatar-large {
+            width: 100%; height: 100%; object-fit: cover; display: flex;
+            align-items: center; justify-content: center; background-color: #141416;
+            font-family: 'Pricedown', sans-serif; font-size: 2.5rem; color: #d94e78;
+        }
+
+        .username { font-family: 'Pricedown', sans-serif; font-size: 1.6rem; text-transform: uppercase; margin-bottom: 4px; }
+        .user-tag { color: #d94e78; font-size: 0.95rem; font-weight: 700; }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+            margin-bottom: 20px;
+        }
+
+        .stat-box {
+            background-color: #f4e6ea;
+            border: 2px solid #141416;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-family: 'Pricedown', sans-serif;
+            font-size: 1.4rem;
+            color: #d94e78;
+        }
+
+        .stat-label {
+            font-family: 'Pricedown', sans-serif;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            color: #141416;
+            margin-top: 2px;
+        }
+
+        .info-group { margin-bottom: 18px; }
+
+        .info-label {
+            display: block; font-family: 'Pricedown', sans-serif; text-transform: uppercase;
+            letter-spacing: 0.5px; font-size: 0.85rem; color: #141416; margin-bottom: 6px;
+        }
+
+        .info-value {
+            width: 100%; padding: 12px 14px; background-color: #f4e6ea; border: 2px solid #141416;
+            color: #141416; font-family: 'Montserrat', sans-serif; font-size: 0.95rem;
+            line-height: 1.45; word-break: break-word;
+        }
+
+        .btn-action {
+            width: 100%; padding: 14px; border: none; background-color: #141416; color: #ffffff;
+            font-family: 'Pricedown', sans-serif; text-transform: uppercase; letter-spacing: 1.5px;
+            font-size: 1rem; cursor: pointer; margin-top: 8px; display: block; text-align: center; text-decoration: none;
+        }
+        .btn-action:hover { background-color: #d94e78; }
+
+        .btn-pending {
+            background-color: #f4e6ea;
+            color: #141416;
+            border: 2px solid #141416;
+        }
+        .btn-pending:hover {
+            background-color: #dc2626;
+            color: #ffffff;
+            border-color: #dc2626;
+        }
+
+        .btn-accept { background-color: #16a34a; }
+        .btn-accept:hover { background-color: #141416; }
+
+        .btn-remove { background-color: #dc2626; }
+        .btn-remove:hover { background-color: #141416; }
+
+        .btn-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 8px;
+        }
+        .btn-row .btn-action { margin-top: 0; }
+    </style>
+</head>
+<body {% if profile.background_image %}style="background: linear-gradient(rgba(244, 230, 234, 0.72), rgba(244, 230, 234, 0.82)), url('{{ profile.background_image.url }}') no-repeat center center fixed; background-size: cover;"{% endif %}>
+    <div class="container">
+        <div class="top-nav">
+            <a href="{% url 'index' %}" class="back-link">← На главную</a>
+            {% if user.is_authenticated %}
+                <a href="{% url 'profile' %}" class="btn-cabinet">Мой кабинет</a>
+            {% endif %}
+        </div>
+
+        <div class="profile-header">
+            <div id="avatar-preview-wrapper">
+                {% if profile.avatar %}
+                    <img src="{{ profile.avatar.url }}" alt="Аватар" class="avatar-large">
+                {% else %}
+                    <div class="avatar-large">{{ target_user.username|first|upper }}</div>
+                {% endif %}
+            </div>
+            <div class="username">{{ target_user.username }}</div>
+            <div class="user-tag">{{ profile.tag|default:"ЗРИТЕЛЬ ZETROOM" }}</div>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-box">
+                <div class="stat-value">{{ profile.age|default:"—" }}</div>
+                <div class="stat-label">Возраст</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value">{{ friends_count }}</div>
+                <div class="stat-label">Друзей</div>
+            </div>
+        </div>
+
+        {% if profile.bio %}
+            <div class="info-group">
+                <span class="info-label">О себе</span>
+                <div class="info-value">{{ profile.bio }}</div>
+            </div>
+        {% endif %}
+
+        <div class="info-group">
+            <span class="info-label">В ZetRoom с</span>
+            <div class="info-value">{{ target_user.date_joined|date:"d.m.Y" }}</div>
+        </div>
+
+        {% if user.is_authenticated and user != target_user %}
+            <form method="post">
+                {% csrf_token %}
+                {% if is_friend %}
+                    <button type="submit" name="action" value="remove_friend" class="btn-action btn-remove">
+                        Удалить из друзей
+                    </button>
+                {% elif incoming_request %}
+                    <div class="btn-row">
+                        <button type="submit" name="action" value="accept_request" class="btn-action btn-accept">
+                            Принять запрос
+                        </button>
+                        <button type="submit" name="action" value="decline_request" class="btn-action btn-remove">
+                            Отклонить
+                        </button>
+                    </div>
+                {% elif outgoing_request %}
+                    <button type="submit" name="action" value="cancel_request" class="btn-action btn-pending"
+                            onmouseover="this.textContent='Отменить запрос'"
+                            onmouseout="this.textContent='Запрос отправлен'">
+                        Запрос отправлен
+                    </button>
+                {% else %}
+                    <button type="submit" name="action" value="send_request" class="btn-action">
+                        Отправить запрос в друзья
+                    </button>
+                {% endif %}
+            </form>
+        {% elif user == target_user %}
+            <a href="{% url 'profile' %}" class="btn-action">Редактировать профиль</a>
+        {% endif %}
+    </div>
+</body>
+</html>
