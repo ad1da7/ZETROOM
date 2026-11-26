@@ -463,7 +463,7 @@
                 }
                 return pc;
             }
-            async function handleVoiceSignal(data) {
+                        async function handleVoiceSignal(data) {
                 if (!data || !data.type || !data.type.startsWith('voice_')) return;
                 const remoteId = String(data.sender || data.user_id || ''); if (!remoteId || remoteId === myUserId) return;
                 try {
@@ -475,7 +475,16 @@
                         await flushPendingCandidates(remoteId, pc); const ans = await pc.createAnswer(); await pc.setLocalDescription(ans);
                         sendVoiceSignal({ type: 'voice_answer', target: remoteId, user_id: myUserId, answer: pc.localDescription });
                     } else if (data.type === 'voice_answer') {
-                        const pc = peers[remoteId]; if (!pc) return; await pc.setRemoteDescription(new RTCSessionDescription(data.answer)); await flushPendingCandidates(remoteId, pc);
+                        const pc = peers[remoteId]; if (!pc) return;
+
+                        // --- ДОБАВЛЕНА ПРОВЕРКА ---
+                        if (pc.signalingState !== 'have-local-offer') {
+                            console.warn("Ignored voice_answer: wrong state", pc.signalingState);
+                            return;
+                        }
+                        // ---------------------------
+
+                        await pc.setRemoteDescription(new RTCSessionDescription(data.answer)); await flushPendingCandidates(remoteId, pc);
                     } else if (data.type === 'voice_ice') {
                         const pc = peers[remoteId]; if (!pc) return;
                         if (pc.remoteDescription && pc.remoteDescription.type) await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
