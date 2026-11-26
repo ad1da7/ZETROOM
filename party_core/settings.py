@@ -15,6 +15,13 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['zetroom.ru', 'www.zetroom.ru', '127.0.0.1', 'localhost']
 
+# ==========================================
+# HTTPS / PROXY SETTINGS (ДЛЯ NGINX)
+# ==========================================
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+USE_X_FORWARDED_HOST = True
+ACCOUNT_DEFAULT_HTTP_PROTOCOL = 'https'
+
 INSTALLED_APPS = [
     'daphne',
     'django.contrib.admin',
@@ -56,6 +63,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'party_core.wsgi.application'
+ASGI_APPLICATION = 'party_core.asgi.application'
 
 DATABASES = {
     'default': {
@@ -78,6 +86,10 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # ==========================================
 # НАСТРОЙКИ ПОЧТЫ (SMTP через Яндекс)
@@ -94,9 +106,6 @@ if os.getenv('EMAIL_HOST_PASSWORD'):
 else:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
     DEFAULT_FROM_EMAIL = 'noreply@zetroom.local'
-# ==========================================
-
-ASGI_APPLICATION = 'party_core.asgi.application'
 
 CHANNEL_LAYERS = {
     "default": {
@@ -104,20 +113,15 @@ CHANNEL_LAYERS = {
     },
 }
 
-MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
-STATIC_ROOT = BASE_DIR / 'staticfiles'
-CSRF_TRUSTED_ORIGINS = ['https://zetroom.ru', 'https://zetroom.ru']
+CSRF_TRUSTED_ORIGINS = ['https://zetroom.ru', 'https://www.zetroom.ru']
 
 LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'profile'
 LOGOUT_REDIRECT_URL = '/'
 
-
 # ==========================================
 # SOCIAL AUTHENTICATION — GOOGLE + YANDEX
 # ==========================================
-
 INSTALLED_APPS += [
     'django.contrib.sites',
     'allauth',
@@ -162,7 +166,6 @@ SOCIALACCOUNT_PROVIDERS = {
             'access_type': 'online',
         },
     },
-
     'yandex': {
         'APP': {
             'client_id': os.getenv('YANDEX_CLIENT_ID', ''),
@@ -175,16 +178,12 @@ SOCIALACCOUNT_PROVIDERS = {
 # Проверка наличия ключей
 for provider in ['google', 'yandex']:
     app = SOCIALACCOUNT_PROVIDERS[provider]['APP']
-
     if not app['client_id'] or not app['secret']:
         print(f'WARNING: {provider} OAuth credentials are missing!')
 
-
-import os
-from dotenv import load_dotenv
-load_dotenv()
-
-# LiveKit voice chat credentials (set in .env; never commit real secrets).
+# ==========================================
+# LIVEKIT VOICE CHAT CREDENTIALS
+# ==========================================
 LIVEKIT_URL = os.getenv('LIVEKIT_URL', '').strip()
 LIVEKIT_API_KEY = os.getenv('LIVEKIT_API_KEY', '').strip()
 LIVEKIT_API_SECRET = os.getenv('LIVEKIT_API_SECRET', '').strip()

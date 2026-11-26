@@ -253,10 +253,13 @@
                 👥 Друзья
             </button>
             <div class="sync-badge"><span class="sync-dot"></span> Zetroom SYNC</div>
-            <a href="{% url 'leave_room' room.uuid %}" class="btn-leave" {% if user == room.host %}onclick="return confirm('Вы создатель комнаты. При выходе комната будет удалена. Продолжить?')"{% endif %}>
-                <span class="text">← Выйти из комнаты</span>
-                <span class="icon">←</span>
-            </a>
+            <form action="{% url 'leave_room' room.uuid %}" method="post" style="margin: 0;">
+                {% csrf_token %}
+                <button type="submit" class="btn-leave" style="cursor: pointer;" {% if user == room.host %}onclick="return confirm('Вы создатель комнаты. При выходе комната будет удалена. Продолжить?')"{% endif %}>
+                    <span class="text">← Выйти из комнаты</span>
+                    <span class="icon">←</span>
+                </button>
+            </form>
         </div>
     </nav>
 
