@@ -71,7 +71,7 @@
             letter-spacing: 0.5px; font-size: 0.85rem; color: #141416; margin-bottom: 6px;
         }
 
-        input[type="text"], input[type="number"], textarea, input[type="file"] {
+        input[type="text"], input[type="number"], textarea, input[type="file"], input[type="date"] {
             width: 100%; padding: 12px 14px; background-color: #f4e6ea; border: 2px solid #141416;
             color: #141416; font-family: 'Montserrat', sans-serif; font-size: 0.95rem; outline: none;
         }
@@ -136,18 +136,20 @@
                 {% endif %}
             </div>
 
-            <!-- ВОЗРАСТ ТОЛЬКО ДЛЯ ПРОСМОТРА (НЕ ИЗМЕНЯЕТСЯ) -->
-            <div class="form-group">
-                <label>Ваш возраст (указывается при регистрации)</label>
-                <input type="text" value="{{ profile.age|default:'Не указан' }}" disabled>
-            </div>
-
-            <!-- ВЫВОДИМ ОСТАЛЬНЫЕ ПОЛЯ (АВАТАР, ФОН, ТЕГ, О СЕБЕ) -->
+            <!-- ВЫВОДИМ ОСТАЛЬНЫЕ ПОЛЯ (АВАТАР, ФОН, ТЕГ, О СЕБЕ, ДАТА РОЖДЕНИЯ) -->
             {% for field in form %}
-                {% if field.name != 'username' and field.name != 'age' %}
+                {% if field.name != 'username' %}
                     <div class="form-group">
                         <label for="{{ field.id_for_label }}">{{ field.label }}</label>
                         {{ field }}
+
+                        <!-- Показываем вычисленный возраст под полем даты рождения -->
+                        {% if field.name == 'birth_date' %}
+                            <div style="font-size: 0.85rem; color: #d94e78; margin-top: 4px; font-weight: 600;">
+                                Вам: {{ profile.age|default:"-" }} лет
+                            </div>
+                        {% endif %}
+
                         {% if field.errors %}
                             <ul class="errorlist">
                                 {% for error in field.errors %}<li>{{ error }}</li>{% endfor %}

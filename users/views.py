@@ -1,4 +1,5 @@
 import random
+from datetime import date
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import login
@@ -25,7 +26,7 @@ def register_view(request):
             request.session['reg_data'] = {
                 'username': form.cleaned_data['username'],
                 'email': form.cleaned_data['email'],
-                'age': form.cleaned_data['age'],
+                'birth_date': form.cleaned_data['birth_date'].isoformat(), # Сохраняем как строку
                 'password': form.cleaned_data['password1'],
                 'code': code,
             }
@@ -68,7 +69,9 @@ def verify_email_view(request):
                         password=reg_data['password']
                     )
                     profile, _ = Profile.objects.get_or_create(user=user)
-                    profile.age = reg_data['age']
+                    # Восстанавливаем дату из строки
+                    if reg_data.get('birth_date'):
+                        profile.birth_date = date.fromisoformat(reg_data['birth_date'])
                     profile.is_email_verified = True
                     profile.save()
             except IntegrityError:
@@ -177,6 +180,8 @@ def public_profile_view(request, username):
         'incoming_request': incoming_request,
         'friends_count': profile.friends.count(),
     })
+
+
 @login_required
 @require_POST
 def toggle_friend_view(request, username):

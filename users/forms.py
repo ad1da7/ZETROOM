@@ -6,28 +6,21 @@ from .models import Profile
 
 class CustomRegisterForm(UserCreationForm):
     email = forms.EmailField(required=True, label="Электронная почта")
-    age = forms.IntegerField(
+
+    # ДАТА РОЖДЕНИЯ ВМЕСТО ВОЗРАСТА
+    birth_date = forms.DateField(
         required=True,
-        min_value=1,
-        max_value=120,
-        label="Ваш возраст",
-        widget=forms.NumberInput(attrs={
-            'min': 1,
-            'max': 120,
-            'placeholder': 'Укажите ваш возраст',
-            'required': 'required',
-        }),
+        label="Дата рождения",
+        widget=forms.DateInput(attrs={'type': 'date'}),
         error_messages={
-            'required': 'Обязательно укажите ваш возраст для регистрации.',
-            'min_value': 'Возраст должен быть не меньше 1 года.',
-            'max_value': 'Укажите корректный возраст (до 120 лет).',
-            'invalid': 'Введите возраст числом.',
+            'required': 'Обязательно укажите вашу дату рождения.',
+            'invalid': 'Введите корректную дату.',
         }
     )
 
     class Meta(UserCreationForm.Meta):
         model = User
-        fields = ("username", "email", "age")
+        fields = ("username", "email", "birth_date")
 
     def clean_email(self):
         email = self.cleaned_data.get("email")
@@ -37,27 +30,25 @@ class CustomRegisterForm(UserCreationForm):
 
 
 class ProfileUpdateForm(forms.ModelForm):
-    # Добавляем поле username из модели User
     username = forms.CharField(max_length=150, required=True, label="Никнейм")
 
     class Meta:
         model = Profile
-        # Поле 'age' убрано отсюда, чтобы возраст нельзя было изменить в профиле
-        fields = ['avatar', 'background_image', 'tag', 'bio']
+        # ВОЗВРАЩАЕМ birth_date В ФОРМУ, ЧТОБЫ ЕГО МОЖНО БЫЛО МЕНЯТЬ
+        fields = ['avatar', 'background_image', 'tag', 'bio', 'birth_date']
         widgets = {
             'tag': forms.TextInput(attrs={'placeholder': '@vash_tag'}),
             'bio': forms.Textarea(attrs={'rows': 4, 'placeholder': 'Расскажите о себе...'}),
+            'birth_date': forms.DateInput(attrs={'type': 'date'}),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Заполняем поле username текущим ником пользователя
         if self.instance and self.instance.user:
             self.fields['username'].initial = self.instance.user.username
 
     def clean_username(self):
         username = self.cleaned_data.get('username')
-        # Проверяем, не занят ли ник кем-то другим (исключая текущего пользователя)
         if User.objects.filter(username=username).exclude(id=self.instance.user.id).exists():
             raise forms.ValidationError("Этот никнейм уже занят. Выберите другой.")
         return username

@@ -3,6 +3,7 @@ from django.contrib.auth.models import User
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from allauth.socialaccount.signals import pre_social_login
+from django.utils import timezone
 
 
 class Profile(models.Model):
@@ -10,10 +11,19 @@ class Profile(models.Model):
     tag = models.CharField("Уникальный тег", max_length=30, unique=True, blank=True, null=True)
     avatar = models.ImageField("Аватарка", upload_to='avatars/', blank=True, null=True)
     background_image = models.ImageField("Фон профиля", upload_to='backgrounds/', blank=True, null=True)
-    age = models.PositiveIntegerField("Возраст", blank=True, null=True)
+    # ТЕПЕРЬ ДАТА РОЖДЕНИЯ ВМЕСТО ВОЗРАСТА
+    birth_date = models.DateField("Дата рождения", blank=True, null=True)
     bio = models.TextField("О себе", max_length=500, blank=True)
     is_email_verified = models.BooleanField("Почта подтверждена", default=False)
     friends = models.ManyToManyField(User, blank=True, related_name='zetroom_friends')
+
+    @property
+    def age(self):
+        """Вычисляет возраст на основе даты рождения."""
+        if not self.birth_date:
+            return None
+        today = timezone.now().date()
+        return today.year - self.birth_date.year - ((today.month, today.day) < (self.birth_date.month, self.birth_date.day))
 
     def __str__(self):
         return f"Профиль {self.user.username}"
