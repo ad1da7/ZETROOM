@@ -45,7 +45,6 @@
         .nav-btn-admin { background-color: #2d2026; color: #f8c8d4; border-color: #f8c8d4; }
         .nav-btn-admin:hover { background-color: #f8c8d4; color: #1e161a; }
 
-        /* Кнопка друзей */
         .friends-btn {
             background: transparent; border: 1px solid #3d2c34; color: #f8c8d4;
             padding: 10px 18px; font-family: 'Oswald', sans-serif; font-size: 0.95rem;
@@ -196,7 +195,8 @@
             if (!container) return;
             container.innerHTML = '<p>Загрузка...</p>';
             try {
-                const res = await fetch('/friends/api/'); // ИСПРАВЛЕНО (убран /account/)
+                // ИСПРАВЛЕНО: возвращен префикс /account/
+                const res = await fetch('/account/friends/api/');
                 const friends = await res.json();
                 if (friends.length === 0) {
                     container.innerHTML = '<p style="font-size: 0.9rem; color: #6b4c57;">У вас пока нет друзей.</p>';
@@ -218,7 +218,8 @@
             if (!container) return;
             container.innerHTML = '<p>Загрузка...</p>';
             try {
-                const res = await fetch('/friends/requests/api/'); // ИСПРАВЛЕНО (убран /account/)
+                // ИСПРАВЛЕНО: возвращен префикс /account/
+                const res = await fetch('/account/friends/requests/api/');
                 const requests = await res.json();
                 if (requests.length === 0) {
                     container.innerHTML = '<p style="font-size: 0.9rem; color: #6b4c57;">Нет новых заявок.</p>';
@@ -240,7 +241,8 @@
 
         async function respondToRequest(requestId, action) {
             try {
-                const res = await fetch(`/friends/requests/${requestId}/respond/`, { // ИСПРАВЛЕНО
+                // ИСПРАВЛЕНО: возвращен префикс /account/
+                const res = await fetch(`/account/friends/requests/${requestId}/respond/`, {
                     method: 'POST',
                     headers: {
                         'X-CSRFToken': getCookie('csrftoken'),
@@ -264,7 +266,8 @@
             if (!tag) return;
 
             try {
-                const res = await fetch('/friends/request/', { // ИСПРАВЛЕНО
+                // ИСПРАВЛЕНО: возвращен префикс /account/
+                const res = await fetch('/account/friends/request/', {
                     method: 'POST',
                     headers: {
                         'X-CSRFToken': getCookie('csrftoken'),
