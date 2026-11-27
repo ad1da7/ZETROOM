@@ -22,76 +22,235 @@
             overflow-x: hidden;
         }
 
+        /* НАВБАР */
         .navbar {
-            position: sticky; top: 0; z-index: 100; background-color: #1e161a;
-            border-bottom: 3px solid #d65a7b; padding: 0 32px; height: 68px;
-            display: flex; justify-content: space-between; align-items: center;
+            position: sticky;
+            top: 0;
+            margin-top: -55px; /* Убирает розовую щель сверху */
+            z-index: 100;
+            background-color: #1e161a;
+            border-bottom: 3px solid #d65a7b;
+            padding: 0 32px;
+            height: 68px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
+
         .brand-logo { display: flex; align-items: center; text-decoration: none; height: 100%; }
         .brand-logo img { height: 44px; width: auto; object-fit: contain; display: block; transition: transform 0.15s ease; }
         .brand-logo:hover img { transform: scale(1.03); }
-        .nav-links { display: flex; align-items: center; gap: 8px; }
+
+        .nav-links { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 
         .nav-btn {
             text-decoration: none; background: transparent; color: #f8c8d4;
-            font-family: 'Oswald', sans-serif; font-size: 0.95rem; font-weight: 600;
+            font-family: 'Pricedown', sans-serif;
+            font-size: 1rem; font-weight: 600;
             letter-spacing: 1px; text-transform: uppercase; padding: 10px 18px;
-            cursor: pointer; border: 1px solid #3d2c34; transition: all 0.15s ease;
+            cursor: pointer; border: 2px solid transparent; transition: all 0.15s ease;
             white-space: nowrap;
         }
-        .nav-btn:hover, .nav-btn.active { background-color: #f8c8d4; color: #1e161a; border-color: #f8c8d4; }
-        .nav-btn-accent { background-color: #d65a7b; color: #ffffff; border-color: #d65a7b; }
-        .nav-btn-accent:hover { background-color: #b84463; color: #ffffff; border-color: #b84463; }
-        .nav-btn-admin { background-color: #2d2026; color: #f8c8d4; border-color: #f8c8d4; }
+        .nav-btn:hover, .nav-btn.active { background-color: #f8c8d4; color: #1e161a; }
+        .nav-btn-accent { background-color: #d65a7b; color: #ffffff; }
+        .nav-btn-accent:hover { background-color: #b84463; color: #ffffff; }
+        .nav-btn-admin { background-color: transparent; color: #f8c8d4; border: 2px solid #f8c8d4; }
         .nav-btn-admin:hover { background-color: #f8c8d4; color: #1e161a; }
 
-        .friends-btn {
-            background: transparent; border: 1px solid #3d2c34; color: #f8c8d4;
-            padding: 10px 18px; font-family: 'Oswald', sans-serif; font-size: 0.95rem;
-            font-weight: 600; text-transform: uppercase; cursor: pointer; transition: 0.15s;
-            display: inline-flex; align-items: center; gap: 8px;
-        }
-        .friends-btn:hover { background: #f8c8d4; color: #1e161a; border-color: #f8c8d4; }
-
         .profile-chip {
-            display: inline-flex; align-items: center; gap: 8px; text-decoration: none;
-            color: #f8c8d4; border: 1px solid #3d2c34; padding: 6px 12px; transition: 0.15s;
-            font-family: 'Oswald', sans-serif; font-size: 0.9rem; text-transform: uppercase;
+            display: inline-flex; align-items: center; gap: 10px; background: #2d2026;
+            padding: 6px 14px 6px 6px; text-decoration: none; color: #ffffff;
+            font-family: 'Oswald', sans-serif; letter-spacing: 1px; font-size: 0.9rem; border: 1px solid #543b47;
         }
-        .profile-chip:hover { background: #f8c8d4; color: #1e161a; }
+        .profile-chip:hover { border-color: #f8c8d4; }
         .chip-avatar {
-            width: 24px; height: 24px; background: #d65a7b; color: #fff; font-weight: bold;
-            display: flex; align-items: center; justify-content: center; font-size: 0.8rem; border-radius: 50%;
+            width: 28px; height: 28px; object-fit: cover; background: #d65a7b; color: #fff;
+            display: flex; align-items: center; justify-content: center; font-weight: 700;
         }
 
-        .container { max-width: 1320px; margin: 40px auto; padding: 0 24px; }
+        /* ОСНОВНОЙ КОНТЕНТ */
+        .main-wrapper { position: relative; z-index: 1; max-width: 1200px; margin: 40px auto; padding: 0 24px; }
 
-        .room-info-bar {
+        .hero-header {
+            display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 32px;
+            padding: 20px 24px; background: rgba(255, 255, 255, 0.92); border: 2px solid #1e161a;
+            box-shadow: 6px 6px 0px #1e161a; gap: 20px; flex-wrap: wrap;
+        }
+        .hero-title { font-family: 'Oswald', sans-serif; font-size: 2.2rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; }
+        .hero-subtitle { color: #6b4c57; font-size: 0.9rem; margin-top: 4px; text-transform: uppercase; font-weight: 600; }
+
+        .controls-right { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 460px; }
+
+        .filter-form { display: flex; gap: 8px; width: 100%; }
+        .search-bar {
+            flex: 1; padding: 12px 16px; border: 2px solid #1e161a; background: #fce8ed;
+            color: #1e161a; font-family: 'Inter', sans-serif; font-size: 0.95rem; outline: none;
+        }
+        .search-bar:focus { border-color: #d65a7b; background: #ffffff; }
+
+        .filter-modal-btn {
+            background: #1e161a; color: #f8c8d4; border: 2px solid #1e161a;
+            padding: 10px 16px; font-family: 'Oswald', sans-serif; font-size: 0.9rem;
+            text-transform: uppercase; cursor: pointer; margin-top: 8px; width: 100%;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+        }
+        .filter-modal-btn:hover { background: #d65a7b; color: #fff; border-color: #d65a7b; }
+
+        /* СЕТКА КОМНАТ */
+        .rooms-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 24px; }
+
+        .room-card {
             background: #ffffff; border: 2px solid #1e161a; box-shadow: 6px 6px 0px #1e161a;
-            padding: 18px 24px; margin-bottom: 24px; display: flex;
-            justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;
+            display: flex; flex-direction: column; transition: transform 0.15s ease, box-shadow 0.15s ease;
         }
-        .room-heading { font-family: 'Pricedown', sans-serif; font-size: 1.7rem; text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; gap: 10px; }
-        .room-sub { font-size: 0.88rem; color: #6b4c57; margin-top: 2px; font-weight: 600; }
+        .room-card:hover { transform: translate(-2px, -2px); box-shadow: 8px 8px 0px #d65a7b; }
 
-        .btn-share {
-            background: #1e161a; color: #f8c8d4; border: 2px solid #1e161a; padding: 10px 20px;
-            font-family: 'Pricedown', sans-serif; text-transform: uppercase; font-size: 0.9rem;
-            letter-spacing: 1px; cursor: pointer; transition: 0.15s;
-            display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+        .room-preview, .room-preview-empty {
+            height: 155px; position: relative; display: flex; justify-content: center; align-items: center; border-bottom: 2px solid #1e161a;
         }
-        .btn-share:hover { background: #d65a7b; border-color: #d65a7b; color: #ffffff; }
+        .room-preview { background: linear-gradient(135deg, #f8c8d4 0%, #e692a8 50%, #d65a7b 100%); }
+        .room-preview-empty { background: repeating-linear-gradient(-45deg, #fce8ed, #fce8ed 12px, #f8c8d4 12px, #f8c8d4 24px); }
 
-        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(30, 22, 26, 0.75); justify-content: center; align-items: center; padding: 20px; z-index: 1000; }
-        .modal-box { background: #ffffff; border: 3px solid #1e161a; box-shadow: 10px 10px 0px #d65a7b; padding: 24px; width: 100%; max-width: 400px; max-height: 90vh; overflow-y: auto; }
-        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 2px solid #1e161a; }
-        .modal-header h3 { font-family: 'Pricedown', sans-serif; font-size: 1.2rem; text-transform: uppercase; }
+        .live-pill {
+            position: absolute; top: 12px; left: 12px; background: #1e161a; color: #f8c8d4;
+            font-family: 'Oswald', sans-serif; font-size: 0.75rem; letter-spacing: 1px; padding: 4px 10px; border: 1px solid #d65a7b;
+        }
+        .badge-18 {
+            position: absolute; bottom: 10px; right: 12px; background: #c93b5b; color: #ffffff;
+            font-family: 'Oswald', sans-serif; font-size: 0.8rem; font-weight: 700; padding: 2px 8px; border: 1px solid #1e161a;
+        }
+        .users-pill {
+            position: absolute; top: 12px; right: 12px; background: #ffffff; color: #1e161a;
+            border: 1px solid #1e161a; font-family: 'Oswald', sans-serif; font-size: 0.8rem; font-weight: 700; padding: 3px 10px;
+        }
+        .play-box {
+            width: 48px; height: 48px; background: rgba(30, 22, 26, 0.88); color: #f8c8d4;
+            display: flex; justify-content: center; align-items: center; font-size: 1.2rem; border: 2px solid #ffffff;
+        }
+        .no-video-badge {
+            background: #ffffff; color: #1e161a; border: 2px solid #1e161a; padding: 6px 14px;
+            font-family: 'Oswald', sans-serif; font-size: 0.85rem; letter-spacing: 1px; text-transform: uppercase;
+        }
+
+        .room-body { padding: 20px; flex: 1; display: flex; flex-direction: column; justify-content: space-between; }
+        .room-title { font-family: 'Oswald', sans-serif; font-size: 1.3rem; text-transform: uppercase; margin-bottom: 6px; }
+        .room-desc { font-size: 0.88rem; color: #6b4c57; margin-bottom: 16px; line-height: 1.4; }
+        .room-footer { display: flex; justify-content: space-between; align-items: center; padding-top: 14px; border-top: 1px solid #f2d5dc; gap: 8px; }
+        .host-name { font-size: 0.8rem; font-weight: 700; text-transform: uppercase; color: #8c6674; }
+        .card-actions { display: flex; gap: 6px; }
+        .btn-card-enter {
+            text-decoration: none; background: #1e161a; color: #f8c8d4; font-family: 'Oswald', sans-serif;
+            letter-spacing: 1px; text-transform: uppercase; font-size: 0.85rem; padding: 8px 16px;
+        }
+        .btn-card-enter:hover { background: #d65a7b; color: #ffffff; }
+        .btn-card-delete {
+            text-decoration: none; background: #c93b5b; color: #ffffff; font-family: 'Oswald', sans-serif;
+            letter-spacing: 1px; text-transform: uppercase; font-size: 0.85rem; padding: 8px 12px;
+        }
+        .btn-card-delete:hover { background: #9e2a45; }
+
+        .empty-lobby {
+            background: rgba(255, 255, 255, 0.94); border: 2px solid #1e161a;
+            box-shadow: 6px 6px 0px #1e161a; padding: 60px 24px; text-align: center;
+        }
+        .empty-lobby h2 { font-family: 'Oswald', sans-serif; font-size: 1.6rem; text-transform: uppercase; margin-bottom: 10px; }
+        .empty-lobby p { color: #6b4c57; margin-bottom: 24px; }
+
+        /* МОДАЛКИ */
+        .modal-overlay {
+            display: none; position: fixed; inset: 0; background: rgba(30, 22, 26, 0.75);
+            justify-content: center; align-items: center; padding: 20px; z-index: 1000;
+        }
+        .modal-box {
+            background: #ffffff; border: 3px solid #1e161a; box-shadow: 10px 10px 0px #d65a7b;
+            padding: 24px; width: 100%; max-width: 400px; max-height: 90vh; overflow-y: auto;
+        }
+        .modal-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 20px; padding-bottom: 12px; border-bottom: 2px solid #1e161a;
+        }
+        .modal-header h3 { font-family: 'Oswald', sans-serif; font-size: 1.2rem; text-transform: uppercase; }
         .modal-close { background: none; border: none; font-size: 1.6rem; cursor: pointer; }
 
-        .friend-item { display: flex; align-items: center; gap: 10px; background: #fce8ed; border: 1px solid #1e161a; padding: 8px 12px; text-decoration: none; color: #1e161a; transition: 0.15s; margin-bottom: 8px; }
+        .field-label { display: block; font-family: 'Oswald', sans-serif; font-size: 0.85rem; text-transform: uppercase; margin-bottom: 6px; }
+        .modal-input {
+            width: 100%; padding: 12px 14px; margin-bottom: 14px; border: 2px solid #1e161a;
+            background: #fce8ed; color: #1e161a; font-family: 'Inter', sans-serif; font-size: 0.95rem; outline: none;
+        }
+        .modal-input:focus { border-color: #d65a7b; background: #ffffff; }
+        .checkbox-row {
+            display: flex; align-items: center; gap: 10px; margin-bottom: 14px;
+            padding: 10px; background: #fce8ed; border: 1px solid #1e161a; cursor: pointer;
+        }
+        .checkbox-row input { width: 18px; height: 18px; accent-color: #d65a7b; cursor: pointer; }
+        .checkbox-row span { font-family: 'Oswald', sans-serif; font-size: 0.9rem; text-transform: uppercase; }
+        .btn-submit-modal {
+            width: 100%; padding: 14px; border: none; background: #1e161a; color: #f8c8d4;
+            font-family: 'Oswald', sans-serif; font-size: 1rem; letter-spacing: 1.5px; text-transform: uppercase; cursor: pointer;
+        }
+        .btn-submit-modal:hover { background: #d65a7b; color: #ffffff; }
+
+        .filter-group { margin-bottom: 16px; }
+        .filter-group label { display: block; font-family: 'Oswald', sans-serif; text-transform: uppercase; margin-bottom: 8px; font-size: 0.85rem; }
+        .filter-options { display: flex; flex-wrap: wrap; gap: 8px; }
+        .filter-opt {
+            background: #fce8ed; border: 2px solid #1e161a; padding: 6px 12px;
+            font-family: 'Oswald', sans-serif; font-size: 0.8rem; cursor: pointer;
+            transition: 0.15s; user-select: none;
+        }
+        .filter-opt:hover { background: #ffffff; border-color: #d65a7b; }
+        .filter-opt.active { background: #1e161a; color: #f8c8d4; }
+
+        .friends-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+        .friend-item {
+            display: flex; align-items: center; gap: 10px;
+            background: #fce8ed; border: 1px solid #1e161a; padding: 8px 12px;
+            text-decoration: none; color: #1e161a; transition: 0.15s;
+        }
         .friend-item:hover { background: #ffffff; border-color: #d65a7b; }
-        .friend-avatar { width: 32px; height: 32px; object-fit: cover; border: 1px solid #1e161a; background: #1e161a; color: #f8c8d4; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.9rem; flex-shrink: 0; }
-        .friend-name { font-family: 'Pricedown', sans-serif; font-size: 0.95rem; text-transform: uppercase; }
+        .friend-avatar {
+            width: 32px; height: 32px; object-fit: cover; border: 1px solid #1e161a;
+            background: #1e161a; color: #f8c8d4; display: flex; align-items: center;
+            justify-content: center; font-weight: bold; font-size: 0.9rem; flex-shrink: 0;
+        }
+        .friend-name { font-family: 'Oswald', sans-serif; font-size: 0.95rem; text-transform: uppercase; }
+
+        /* ========================================= */
+        /* МОБИЛЬНАЯ ВЕРСИЯ                          */
+        /* ========================================= */
+        @media (max-width: 900px) {
+            .navbar {
+                height: auto; min-height: 60px; flex-wrap: wrap; padding: 10px 16px; gap: 8px;
+                background-image: none;
+            }
+            .brand-logo img { height: 32px; }
+            .nav-links {
+                flex-wrap: wrap; width: 100%; justify-content: center; gap: 6px;
+            }
+            .nav-btn {
+                padding: 8px 12px; font-size: 0.8rem; flex: 1 1 auto; text-align: center;
+            }
+            .profile-chip {
+                width: 100%; justify-content: center; margin-top: 4px;
+            }
+            .main-wrapper { margin: 20px auto; padding: 0 12px; }
+            .hero-header {
+                flex-direction: column; align-items: flex-start; padding: 16px; gap: 16px; box-shadow: 4px 4px 0px #1e161a;
+            }
+            .hero-title { font-size: 1.6rem; }
+            .controls-right { max-width: 100%; }
+
+            .rooms-grid { grid-template-columns: 1fr; gap: 16px; }
+            .room-card { box-shadow: 4px 4px 0px #1e161a; }
+            .room-card:hover { transform: none; box-shadow: 4px 4px 0px #1e161a; }
+
+            .room-footer { flex-direction: column; align-items: flex-start; gap: 10px; }
+            .card-actions { width: 100%; }
+            .btn-card-enter, .btn-card-delete { flex: 1; text-align: center; padding: 10px; }
+
+            .modal-box { padding: 20px; box-shadow: 6px 6px 0px #d65a7b; }
+            .modal-header h3 { font-size: 1.1rem; }
+        }
     </style>
 </head>
 <body>
@@ -103,7 +262,8 @@
                 <button type="button" class="nav-btn nav-btn-accent" onclick="document.getElementById('createRoomModal').style.display='flex'">+ Создать</button>
                 <button type="button" class="nav-btn" onclick="document.getElementById('joinRoomModal').style.display='flex'">Присоединиться</button>
 
-                <button type="button" class="friends-btn" onclick="openFriendsModal()">
+                <!-- Кнопка друзей -->
+                <button type="button" class="nav-btn" onclick="document.getElementById('friendsModal').style.display='flex'; if(typeof loadFriends === 'function') { loadFriends(); loadFriendRequests(); }" style="display: inline-flex; align-items: center; gap: 6px; font-family: 'Pricedown', sans-serif; font-size: 0.95rem; letter-spacing: 1px;">
                     <svg style="width: 18px; height: 18px; fill: currentColor;" viewBox="0 0 24 24">
                         <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/>
                     </svg>
@@ -116,11 +276,11 @@
 
                 <a href="{% url 'profile' %}" class="profile-chip">
                     {% if user.profile.avatar %}
-                        <img src="{{ user.profile.avatar.url }}" alt="Аватар" class="chip-avatar" style="object-fit: cover;">
+                        <img src="{{ user.profile.avatar.url }}" alt="Аватар" class="chip-avatar">
                     {% else %}
                         <div class="chip-avatar">{{ user.username|first|upper }}</div>
                     {% endif %}
-                    <span>{{ user.username }}</span>
+                    <span>{{ user.profile.tag|default:user.username }}</span>
                 </a>
             {% else %}
                 <a href="{% url 'login' %}" class="nav-btn nav-btn-accent">+ Создать</a>
@@ -131,175 +291,307 @@
         </div>
     </nav>
 
-    <div class="container">
-        <div class="room-info-bar">
+    <main class="main-wrapper">
+        <div class="hero-header">
             <div>
-                <h1 class="room-heading">АКТИВНЫЕ СЕССИИ</h1>
-                <div class="room-sub">Прямые трансляции и совместные кинозалы Zetroom</div>
+                <h1 class="hero-title">Активные сессии</h1>
+                <p class="hero-subtitle">Прямые трансляции и совместные кинозалы Zetroom</p>
             </div>
-            <div style="display: flex; flex-direction: column; gap: 10px; width: 300px;">
-                <input type="text" placeholder="ПОИСК ПО НАЗВАНИЮ..." style="padding: 12px; border: 2px solid #1e161a; font-family: 'Inter', sans-serif;">
-                <button type="button" class="btn-share" onclick="alert('Фильтры скоро появятся')">⚙ НАСТРОИТЬ ФИЛЬТРЫ</button>
+
+            <div class="controls-right">
+                <form method="GET" action="{% url 'index' %}" class="filter-form" id="filterFormSubmit">
+                    <input type="text" id="live-room-search" name="q" value="{{ query|default:'' }}" class="search-bar" placeholder="ПОИСК ПО НАЗВАНИЮ..." autocomplete="off">
+                    <input type="hidden" name="content" id="currentContentFilter" value="{{ content_filter|default:'all' }}">
+                    <input type="hidden" name="privacy" id="currentPrivacyFilter" value="{{ privacy_filter|default:'all' }}">
+                    <input type="hidden" name="age" id="currentAgeFilter" value="{{ age_filter|default:'all' }}">
+                </form>
+                <button type="button" class="filter-modal-btn" onclick="document.getElementById('filterModal').style.display='flex'">
+                    <svg style="width: 16px; height: 16px; fill: currentColor;" viewBox="0 0 24 24">
+                        <path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.06-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.73,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.06,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/>
+                    </svg>
+                    Настроить фильтры
+                </button>
             </div>
         </div>
 
+        {% if error %}
+            <div class="alert-banner">{{ error }}</div>
+        {% endif %}
+
         {% if rooms %}
-            <!-- Здесь будет вывод комнат -->
+            <div class="rooms-grid" id="rooms-grid">
+                {% for room in rooms %}
+                    <div class="room-card" data-room-name="{{ room.name|lower }}" data-is-18="{{ room.is_18_plus|yesno:'true,false' }}" data-content-type="{{ room.content_type }}">
+                        {% if room.video_url %}
+                            <div class="room-preview" {% if room.thumbnail_url %}style="background: linear-gradient(rgba(30, 22, 26, 0.25), rgba(30, 22, 26, 0.45)), url('{{ room.thumbnail_url }}') center/cover no-repeat;"{% endif %}>
+                                <span class="live-pill">● В ЭФИРЕ</span>
+                                <span class="users-pill">ЗРИТЕЛЕЙ: {{ room.participants.count }} / {{ room.max_participants }}</span>
+                                {% if room.is_18_plus %}<span class="badge-18">18+</span>{% endif %}
+                                <div class="play-box">▶</div>
+                            </div>
+                        {% else %}
+                            <div class="room-preview-empty">
+                                <span class="live-pill">● ОЖИДАНИЕ</span>
+                                <span class="users-pill">ЗРИТЕЛЕЙ: {{ room.participants.count }} / {{ room.max_participants }}</span>
+                                {% if room.is_18_plus %}<span class="badge-18">18+</span>{% endif %}
+                                <div class="no-video-badge">Без видео • Чат</div>
+                            </div>
+                        {% endif %}
+
+                        <div class="room-body">
+                            <div>
+                                <div class="room-title">{{ room.name }}</div>
+                                <div class="room-desc">{{ room.description|default:"Совместный просмотр видео в Zetroom." }}</div>
+                            </div>
+                            <div class="room-footer">
+                                <span class="host-name">ХОСТ: {{ room.host.username }}</span>
+                                <div class="card-actions">
+                                    {% if user.is_authenticated %}
+                                        <a href="{% url 'room_detail' room.uuid %}" class="btn-card-enter">Войти</a>
+                                        {% if user.is_staff or user.is_superuser or room.host == user %}
+                                            <form action="{% url 'delete_room' room.uuid %}" method="post" style="display:inline;" onsubmit="return confirm('Удалить эту комнату?')">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn-card-delete">Удалить</button>
+                                            </form>
+                                        {% endif %}
+                                    {% else %}
+                                        <a href="{% url 'login' %}" class="btn-card-enter">Войти [ЗАКРЫТО]</a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+            <div class="empty-lobby" id="no-filter-results" style="display: none;">
+                <h2>Ничего не найдено</h2>
+                <p>Попробуйте изменить поисковый запрос или фильтр.</p>
+            </div>
         {% else %}
-            <div style="background: #ffffff; border: 2px solid #1e161a; box-shadow: 6px 6px 0px #1e161a; padding: 60px; text-align: center;">
-                <h2 style="font-family: 'Pricedown', sans-serif; font-size: 1.5rem; text-transform: uppercase; margin-bottom: 10px;">ПОКА НЕТ АКТИВНЫХ КОМНАТ</h2>
-                <p style="color: #6b4c57; margin-bottom: 20px;">Создайте первую сессию и пригласите зрителей.</p>
-                <button type="button" class="btn-share" onclick="document.getElementById('createRoomModal').style.display='flex'" style="background: #d65a7b; border-color: #d65a7b; color: #fff;">+ СОЗДАТЬ КОМНАТУ</button>
+            <div class="empty-lobby">
+                <h2>Пока нет активных комнат</h2>
+                <p>Создайте первую сессию и пригласите зрителей.</p>
+                {% if user.is_authenticated %}
+                    <button type="button" class="nav-btn nav-btn-accent" onclick="document.getElementById('createRoomModal').style.display='flex'">+ Создать комнату</button>
+                {% else %}
+                    <a href="{% url 'register' %}" class="nav-btn nav-btn-accent">Регистрация для входа</a>
+                {% endif %}
             </div>
         {% endif %}
+    </main>
+
+    <!-- МОДАЛКИ -->
+    <div class="modal-overlay" id="createRoomModal" onclick="if(event.target === this) this.style.display='none'">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3>Создать сессию</h3>
+                <button type="button" class="modal-close" onclick="document.getElementById('createRoomModal').style.display='none'">&times;</button>
+            </div>
+            <form method="POST" action="{% url 'create_room' %}">
+                {% csrf_token %}
+                <label class="field-label">Название комнаты *</label>
+                <input type="text" name="room_name" class="modal-input" placeholder="НАЗВАНИЕ..." required autocomplete="off">
+                <label class="field-label">Описание</label>
+                <textarea name="description" class="modal-input" rows="2" placeholder="ОПИСАНИЕ СЕССИИ..."></textarea>
+                <label class="field-label">Ссылка на видео</label>
+                <input type="url" name="video_url" class="modal-input" placeholder="https://..." autocomplete="off">
+                <label class="field-label">Что смотрим?</label>
+                <select name="content_type" class="modal-input">
+                    <option value="movie">Фильм</option>
+                    <option value="series">Сериал</option>
+                    <option value="cartoon">Мультик</option>
+                    <option value="cartoon_series">Мультсериал</option>
+                    <option value="video">Видео</option>
+                    <option value="stream">Стрим</option>
+                </select>
+                <label class="field-label">Максимум участников</label>
+                <input type="number" name="max_participants" class="modal-input" value="10" min="1" max="100" required>
+                <label class="checkbox-row"><input type="checkbox" name="is_18_plus"><span>🔞 Контент 18+</span></label>
+                <label class="checkbox-row"><input type="checkbox" name="is_private"><span>🔒 Частная комната</span></label>
+                <button type="submit" class="btn-submit-modal">Создать и войти</button>
+            </form>
+        </div>
     </div>
 
-    <!-- Модалка друзей -->
-    <div class="modal-overlay" id="friendsModal" onclick="if(event.target===this)this.style.display='none'">
+    <div class="modal-overlay" id="joinRoomModal" onclick="if(event.target === this) this.style.display='none'">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3>Подключение по коду или ID</h3>
+                <button type="button" class="modal-close" onclick="document.getElementById('joinRoomModal').style.display='none'">&times;</button>
+            </div>
+            <form method="POST" action="{% url 'join_room' %}">
+                {% csrf_token %}
+                <label class="field-label">Код доступа, ID или название *</label>
+                <input type="text" name="query" class="modal-input" placeholder="ВВЕДИТЕ КОД..." required autocomplete="off">
+                <button type="submit" class="btn-submit-modal">Подключиться</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="filterModal" onclick="if(event.target === this) this.style.display='none'">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3>Фильтры</h3>
+                <button type="button" class="modal-close" onclick="document.getElementById('filterModal').style.display='none'">&times;</button>
+            </div>
+            <div class="filter-group">
+                <label>Тип контента</label>
+                <div class="filter-options" id="contentFilterOpts">
+                    <div class="filter-opt {% if content_filter == 'all' or not content_filter %}active{% endif %}" data-value="all">Все</div>
+                    <div class="filter-opt {% if content_filter == 'movie' %}active{% endif %}" data-value="movie">Фильм</div>
+                    <div class="filter-opt {% if content_filter == 'series' %}active{% endif %}" data-value="series">Сериал</div>
+                    <div class="filter-opt {% if content_filter == 'cartoon' %}active{% endif %}" data-value="cartoon">Мультик</div>
+                    <div class="filter-opt {% if content_filter == 'cartoon_series' %}active{% endif %}" data-value="cartoon_series">Мультсериал</div>
+                    <div class="filter-opt {% if content_filter == 'video' %}active{% endif %}" data-value="video">Видео</div>
+                    <div class="filter-opt {% if content_filter == 'stream' %}active{% endif %}" data-value="stream">Стрим</div>
+                </div>
+            </div>
+
+            <div class="filter-group">
+                <label>Возрастное ограничение</label>
+                <div class="filter-options" id="ageFilterOpts">
+                    <div class="filter-opt {% if age_filter == 'all' or not age_filter %}active{% endif %}" data-value="all">Все</div>
+                    <div class="filter-opt {% if age_filter == '18' %}active{% endif %}" data-value="18">Только 18+</div>
+                </div>
+            </div>
+            <button type="button" class="btn-submit-modal" onclick="applyFilters()">Применить</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="friendsModal" onclick="if(event.target === this) this.style.display='none'">
         <div class="modal-box">
             <div class="modal-header">
                 <h3>Мои друзья</h3>
-                <button type="button" class="modal-close" onclick="document.getElementById('friendsModal').style.display='none'">×</button>
+                <button type="button" class="modal-close" onclick="document.getElementById('friendsModal').style.display='none'">&times;</button>
             </div>
-
-            <div style="margin-bottom: 20px;">
-                <label style="font-family: 'Pricedown'; font-size: 0.9rem; text-transform: uppercase; display: block; margin-bottom: 6px;">Добавить по тегу</label>
-                <div style="display: flex; gap: 8px;">
-                    <input id="friend-tag-input" type="text" maxlength="30" placeholder="@user_tag" style="flex: 1; padding: 8px; border: 2px solid #1e161a; font-family: 'Inter';">
-                    <button type="button" onclick="sendFriendRequestByTag()" style="background: #1e161a; color: #fff; padding: 0 16px; border: none; font-family: 'Pricedown'; cursor: pointer;">ДОБАВИТЬ</button>
-                </div>
-                <p id="friend-request-result" style="margin-top: 6px; font-size: 0.85rem; font-weight: 600;"></p>
+            <div style="display:flex; gap:8px; margin: 12px 0;">
+                <input id="friend-tag-input" type="text" maxlength="30" placeholder="Юзер-тег, например @alex123" style="flex:1; min-width:0; padding:10px; border:2px solid #1e161a; background:#fff; color:#1e161a;">
+                <button type="button" onclick="sendFriendRequestByTag()" style="padding:10px 14px; border:0; background:#d65a7b; color:#fff; cursor:pointer;">Добавить</button>
             </div>
-
-            <h4 style="font-family: 'Pricedown'; text-transform: uppercase; margin-bottom: 10px; border-bottom: 1px solid #ccc; padding-bottom: 4px;">Заявки в друзья</h4>
-            <div id="friend-requests-container" style="margin-bottom: 20px;">
-                <p>Загрузка...</p>
-            </div>
-
-            <h4 style="font-family: 'Pricedown'; text-transform: uppercase; margin-bottom: 10px; border-bottom: 1px solid #ccc; padding-bottom: 4px;">Мои друзья</h4>
-            <div id="friends-list-container">
-                <p>Загрузка...</p>
+            <p id="friend-request-result" role="status" style="font-size:.85rem; margin-bottom:12px;"></p>
+            <h4 style="margin:10px 0;">Заявки вам</h4>
+            <div id="friend-requests-container" style="max-height:180px; overflow-y:auto;"></div>
+            <h4 style="margin:14px 0 8px;">Мои друзья</h4>
+            <div id="friends-list-container" style="max-height: 260px; overflow-y: auto;">
+                <p style="text-align: center; color: #6b4c57;">Загрузка...</p>
             </div>
         </div>
     </div>
 
     <script>
-        function openFriendsModal() {
-            document.getElementById('friendsModal').style.display = 'flex';
-            loadFriendsList();
-            loadFriendRequests();
+        function friendsCsrf() {
+            const match = document.cookie.split(';').map(x => x.trim()).find(x => x.startsWith('csrftoken='));
+            return match ? decodeURIComponent(match.split('=').slice(1).join('=')) : '';
         }
-
-        async function loadFriendsList() {
+        window.sendFriendRequestByTag = async function() {
+            const input = document.getElementById('friend-tag-input');
+            const result = document.getElementById('friend-request-result');
+            const tag = (input.value || '').trim();
+            result.textContent = 'Отправляем заявку…';
+            try {
+                const body = new URLSearchParams({tag});
+                const response = await fetch('/account/friends/request/', {
+                    method: 'POST', credentials: 'same-origin',
+                    headers: {'X-CSRFToken': friendsCsrf(), 'Content-Type': 'application/x-www-form-urlencoded'},
+                    body
+                });
+                const data = await response.json();
+                result.textContent = data.message || 'Не удалось отправить заявку.';
+                if (response.ok) input.value = '';
+                loadFriendRequests();
+            } catch (_) { result.textContent = 'Ошибка соединения.'; }
+        };
+        window.loadFriendRequests = async function() {
+            const box = document.getElementById('friend-requests-container');
+            if (!box) return;
+            try {
+                const response = await fetch('/account/friends/requests/api/', {credentials:'same-origin'});
+                const requests = await response.json();
+                box.replaceChildren();
+                if (!requests.length) { box.textContent = 'Новых заявок нет.'; return; }
+                requests.forEach(item => {
+                    const row = document.createElement('div');
+                    row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:8px;border-bottom:1px solid #eadde1;';
+                    const label = document.createElement('span');
+                    label.style.flex = '1'; label.textContent = `${item.username} ${item.tag || ''}`;
+                    row.appendChild(label);
+                    ['accept','decline'].forEach(action => {
+                        const button = document.createElement('button');
+                        button.type = 'button'; button.textContent = action === 'accept' ? 'Принять' : 'Отклонить';
+                        button.onclick = async () => {
+                            const response = await fetch(`/account/friends/requests/${item.id}/respond/`, {
+                                method:'POST', credentials:'same-origin',
+                                headers:{'X-CSRFToken':friendsCsrf(),'Content-Type':'application/x-www-form-urlencoded'},
+                                body:new URLSearchParams({action})
+                            });
+                            if (response.ok) { loadFriendRequests(); loadFriends(); }
+                        };
+                        row.appendChild(button);
+                    });
+                    box.appendChild(row);
+                });
+            } catch (_) { box.textContent = 'Не удалось загрузить заявки.'; }
+        };
+        // --- ЗАГРУЗКА ДРУЗЕЙ ---
+        window.loadFriends = async function() {
             const container = document.getElementById('friends-list-container');
             if (!container) return;
-            container.innerHTML = '<p>Загрузка...</p>';
+
+            container.innerHTML = '<p style="text-align: center; color: #6b4c57;">Загрузка...</p>';
+
             try {
-                // ИСПРАВЛЕНО: возвращен префикс /account/
                 const res = await fetch('/account/friends/api/');
+                if (!res.ok) throw new Error('Ошибка загрузки');
+
                 const friends = await res.json();
+
                 if (friends.length === 0) {
-                    container.innerHTML = '<p style="font-size: 0.9rem; color: #6b4c57;">У вас пока нет друзей.</p>';
+                    container.innerHTML = '<p style="text-align: center; color: #6b4c57;">У вас пока нет друзей. Найдите их в комнатах!</p>';
                     return;
                 }
-                container.innerHTML = friends.map(f => `
-                    <a href="/profile/${f.username}/" class="friend-item">
-                        ${f.avatar_url ? `<img src="${f.avatar_url}" class="friend-avatar">` : `<div class="friend-avatar">${f.username[0].toUpperCase()}</div>`}
-                        <span class="friend-name">${f.username}</span>
-                    </a>
-                `).join('');
-            } catch (e) {
-                container.innerHTML = '<p style="color: #d65a7b;">Ошибка загрузки друзей.</p>';
-            }
-        }
 
-        async function loadFriendRequests() {
-            const container = document.getElementById('friend-requests-container');
-            if (!container) return;
-            container.innerHTML = '<p>Загрузка...</p>';
-            try {
-                // ИСПРАВЛЕНО: возвращен префикс /account/
-                const res = await fetch('/account/friends/requests/api/');
-                const requests = await res.json();
-                if (requests.length === 0) {
-                    container.innerHTML = '<p style="font-size: 0.9rem; color: #6b4c57;">Нет новых заявок.</p>';
-                    return;
-                }
-                container.innerHTML = requests.map(r => `
-                    <div style="background: #fce8ed; border: 1px solid #1e161a; padding: 10px; margin-bottom: 8px;">
-                        <div style="font-weight: bold; margin-bottom: 8px; font-family: 'Pricedown';">${r.username} ${r.tag ? `<span style="color: #d65a7b; font-size: 0.8rem;">(${r.tag})</span>` : ''}</div>
-                        <div style="display: flex; gap: 8px;">
-                            <button onclick="respondToRequest(${r.id}, 'accept')" style="background: #10b981; color: #fff; border: none; padding: 4px 10px; cursor: pointer; font-family: 'Pricedown'; font-size: 0.8rem;">ПРИНЯТЬ</button>
-                            <button onclick="respondToRequest(${r.id}, 'decline')" style="background: #c93b5b; color: #fff; border: none; padding: 4px 10px; cursor: pointer; font-family: 'Pricedown'; font-size: 0.8rem;">ОТКЛОНИТЬ</button>
-                        </div>
-                    </div>
-                `).join('');
+                container.innerHTML = `<ul class="friends-list">${friends.map(f => `
+                    <li>
+                        <a href="/account/profile/${f.username}/" class="friend-item">
+                            ${f.avatar_url
+                                ? `<img src="${f.avatar_url}" class="friend-avatar">`
+                                : `<div class="friend-avatar">${f.username[0].toUpperCase()}</div>`}
+                            <span class="friend-name">${f.username}</span>
+                        </a>
+                    </li>
+                `).join('')}</ul>`;
             } catch (e) {
-                container.innerHTML = '<p style="color: #d65a7b;">Ошибка загрузки заявок.</p>';
+                container.innerHTML = '<p style="text-align: center; color: #c93b5b;">Не удалось загрузить друзей.</p>';
             }
-        }
+        };
 
-        async function respondToRequest(requestId, action) {
-            try {
-                // ИСПРАВЛЕНО: возвращен префикс /account/
-                const res = await fetch(`/account/friends/requests/${requestId}/respond/`, {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRFToken': getCookie('csrftoken'),
-                        'Content-Type': 'application/x-www-form-urlencoded'
-                    },
-                    body: `action=${action}`
+        // --- ФИЛЬТРЫ ---
+        let selectedContentFilter = "{{ content_filter|default:'all' }}";
+        let selectedPrivacyFilter = "{{ privacy_filter|default:'all' }}";
+        let selectedAgeFilter = "{{ age_filter|default:'all' }}";
+
+        function setupFilterButtons(containerId, variableSetter) {
+            document.querySelectorAll(`#${containerId} .filter-opt`).forEach(opt => {
+                opt.addEventListener('click', () => {
+                    document.querySelectorAll(`#${containerId} .filter-opt`).forEach(o => o.classList.remove('active'));
+                    opt.classList.add('active');
+                    variableSetter(opt.getAttribute('data-value'));
                 });
-                if (res.ok) {
-                    loadFriendRequests();
-                    loadFriendsList();
-                }
-            } catch (e) {
-                alert('Ошибка сети');
-            }
+            });
         }
 
-        async function sendFriendRequestByTag() {
-            const input = document.getElementById('friend-tag-input');
-            const tag = input.value.trim();
-            const result = document.getElementById('friend-request-result');
-            if (!tag) return;
+        setupFilterButtons('contentFilterOpts', (val) => { selectedContentFilter = val; });
+        setupFilterButtons('privacyFilterOpts', (val) => { selectedPrivacyFilter = val; });
+        setupFilterButtons('ageFilterOpts', (val) => { selectedAgeFilter = val; });
 
-            try {
-                // ИСПРАВЛЕНО: возвращен префикс /account/
-                const res = await fetch('/account/friends/request/', {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRFToken': getCookie('csrftoken'),
-                        'Content-Type': 'application/x-www-form-urlencoded'
-                    },
-                    body: `tag=${encodeURIComponent(tag)}`
-                });
-                const data = await res.json();
-                if (data.status === 'ok') {
-                    result.innerHTML = `<span style="color: #10b981;">${data.message}</span>`;
-                    input.value = '';
-                } else {
-                    result.innerHTML = `<span style="color: #c93b5b;">${data.message}</span>`;
-                }
-            } catch (e) {
-                result.innerHTML = '<span style="color: #c93b5b;">Ошибка сети</span>';
-            }
-        }
-
-        function getCookie(name) {
-            let cookieValue = null;
-            if (document.cookie && document.cookie !== '') {
-                const cookies = document.cookie.split(';');
-                for (let i = 0; i < cookies.length; i++) {
-                    const cookie = cookies[i].trim();
-                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        break;
-                    }
-                }
-            }
-            return cookieValue;
+        function applyFilters() {
+            const searchVal = document.getElementById('live-room-search').value;
+            const url = new URL(window.location.href);
+            url.searchParams.set('q', searchVal);
+            url.searchParams.set('content', selectedContentFilter);
+            url.searchParams.set('privacy', selectedPrivacyFilter);
+            url.searchParams.set('age', selectedAgeFilter);
+            window.location.href = url.toString();
         }
     </script>
 </body>
