@@ -48,20 +48,26 @@
             display: block; font-family: 'Pricedown', sans-serif; text-transform: uppercase;
             letter-spacing: 0.5px; font-size: 0.85rem; color: #1e161a; margin-bottom: 6px;
         }
-        input[type="text"], input[type="password"], input[type="email"], input[type="number"] {
+
+        /* Добавили input[type="date"] сюда */
+        input[type="text"], input[type="password"], input[type="email"], input[type="number"], input[type="date"] {
             width: 100%; padding: 12px 14px; background-color: #fce8ed; border: 2px solid #1e161a;
             color: #1e161a; font-family: 'Montserrat', sans-serif; font-size: 0.95rem; outline: none;
         }
         input:focus { border-color: #d65a7b; background-color: #ffffff; }
         .helptext { display: block; font-size: 0.78rem; color: #8c6674; margin-top: 4px; line-height: 1.3; }
+
         .errorlist {
             list-style: none; background: #1e161a; color: #f8c8d4;
             border-left: 4px solid #c93b5b; padding: 10px 12px; font-size: 0.85rem; margin-bottom: 16px;
         }
+
+        /* Ошибка конкретного поля */
         .field-error {
             color: #c93b5b; font-size: 0.85rem; margin-top: 6px; font-weight: 600;
             border: 2px dashed #c93b5b; padding: 5px; background: #ffe6e6;
         }
+
         .btn-submit {
             width: 100%; padding: 14px; border: none; background-color: #1e161a; color: #f8c8d4;
             font-family: 'Pricedown', sans-serif; text-transform: uppercase; letter-spacing: 1.5px;
@@ -104,6 +110,7 @@
                         <label for="{{ field.id_for_label }}">{{ field.label }}</label>
                         {{ field }}
                         {% if field.help_text %}<span class="helptext">{{ field.help_text|safe }}</span>{% endif %}
+
                         {% if field.errors %}
                             <div class="field-error">
                                 {{ field.errors|striptags }}

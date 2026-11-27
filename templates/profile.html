@@ -71,7 +71,8 @@
             letter-spacing: 0.5px; font-size: 0.85rem; color: #141416; margin-bottom: 6px;
         }
 
-        input[type="text"], input[type="number"], textarea, input[type="file"], input[type="date"] {
+        /* Стили для всех инпутов, включая дату */
+        input[type="text"], input[type="number"], input[type="date"], textarea, input[type="file"] {
             width: 100%; padding: 12px 14px; background-color: #f4e6ea; border: 2px solid #141416;
             color: #141416; font-family: 'Montserrat', sans-serif; font-size: 0.95rem; outline: none;
         }
@@ -97,6 +98,15 @@
             font-size: 0.8rem;
             margin-top: 4px;
             font-weight: 600;
+        }
+
+        /* Стиль для отображения возраста */
+        .age-display {
+            font-size: 0.85rem;
+            color: #d94e78;
+            margin-top: 6px;
+            font-weight: 700;
+            text-transform: uppercase;
         }
     </style>
 </head>
@@ -125,7 +135,7 @@
         <form method="post" enctype="multipart/form-data">
             {% csrf_token %}
 
-            <!-- ВЫВОДИМ ПОЛЕ НИКНЕЙМ ОТДЕЛЬНО (В САМОМ НАЧАЛЕ) -->
+            <!-- Никнейм -->
             <div class="form-group">
                 <label for="{{ form.username.id_for_label }}">{{ form.username.label }}</label>
                 {{ form.username }}
@@ -136,16 +146,16 @@
                 {% endif %}
             </div>
 
-            <!-- ВЫВОДИМ ОСТАЛЬНЫЕ ПОЛЯ (АВАТАР, ФОН, ТЕГ, О СЕБЕ, ДАТА РОЖДЕНИЯ) -->
+            <!-- Остальные поля (Аватар, Фон, Тег, О себе, Дата рождения) -->
             {% for field in form %}
                 {% if field.name != 'username' %}
                     <div class="form-group">
                         <label for="{{ field.id_for_label }}">{{ field.label }}</label>
                         {{ field }}
 
-                        <!-- Показываем вычисленный возраст под полем даты рождения -->
+                        <!-- Выводим возраст под полем даты рождения -->
                         {% if field.name == 'birth_date' %}
-                            <div style="font-size: 0.85rem; color: #d94e78; margin-top: 4px; font-weight: 600;">
+                            <div class="age-display">
                                 Вам: {{ profile.age|default:"-" }} лет
                             </div>
                         {% endif %}
