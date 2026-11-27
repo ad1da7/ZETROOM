@@ -12,4 +12,5 @@ urlpatterns = [
     path('room/<uuid:room_uuid>/delete/', views.delete_room, name='delete_room'),
     path('room/<uuid:room_uuid>/kick/<int:user_id>/', views.kick_user, name='kick_user'),
     path('room/<uuid:room_uuid>/sync/', views.room_sync_api, name='room_sync_api'),
+    path('room/<uuid:room_uuid>/reviews/', views.room_reviews_api, name='room_reviews_api'),
 ]

@@ -9,13 +9,32 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
 from django.db import transaction
+from django.db.models import Avg, Q
 from django.conf import settings
-from .models import Room, Participant, Message
+from .models import Room, Participant, Message, MovieReview
 
 try:
     import yt_dlp
 except ImportError:
     yt_dlp = None
+
+
+def get_user_avatar_url(user):
+    if not user:
+        return ''
+    profile = getattr(user, 'profile', None)
+    if profile and profile.avatar:
+        try:
+            return profile.avatar.url
+        except Exception:
+            return ''
+    return ''
+
+
+def _reviews_queryset_for_room(room):
+    if room.video_url:
+        return MovieReview.objects.filter(Q(video_url=room.video_url) | Q(room=room, video_url=''))
+    return MovieReview.objects.filter(room=room)
 
 
 def extract_direct_stream(video_url):
@@ -97,7 +116,8 @@ def rooms_counts_api(request):
     return JsonResponse({'rooms': data})
 
 
-def all_rooms(request): return redirect('index')
+def all_rooms(request):
+    return redirect('index')
 
 
 @login_required
@@ -111,7 +131,8 @@ def create_room(request):
         is_private = request.POST.get('is_private') == 'on'
         content_type = request.POST.get('content_type', 'movie')
 
-        if not name: return redirect('index')
+        if not name:
+            return redirect('index')
 
         room = Room.objects.create(
             name=name, host=request.user, description=description,
@@ -128,7 +149,8 @@ def create_room(request):
 def join_room(request):
     if request.method == 'POST':
         q = request.POST.get('query', '').strip()
-        if not q: return redirect('index')
+        if not q:
+            return redirect('index')
         room = Room.objects.filter(access_code__iexact=q).first()
         if not room:
             try:
@@ -137,14 +159,16 @@ def join_room(request):
                 room = None
         if not room:
             room = Room.objects.filter(name__icontains=q, is_private=False).first()
-        if room: return redirect('room_detail', room_uuid=room.uuid)
+        if room:
+            return redirect('room_detail', room_uuid=room.uuid)
     return redirect('index')
 
 
 @login_required
 def room_detail(request, room_uuid):
     room = get_object_or_404(Room, uuid=room_uuid)
-    if room.banned_users.filter(id=request.user.id).exists(): return redirect('index')
+    if room.banned_users.filter(id=request.user.id).exists():
+        return redirect('index')
     room.cleanup_stale_participants()
     if room.participants.count() >= room.max_participants and not room.participants.filter(user=request.user).exists():
         return redirect('index')
@@ -156,7 +180,7 @@ def room_detail(request, room_uuid):
         'room': room,
         'is_host': room.host_id == request.user.id,
         'direct_stream_url': direct_stream_url,
-        'participants': room.participants.select_related('user').all(),
+        'participants': room.participants.select_related('user', 'user__profile').all(),
         'messages': room.messages.all().order_by('created_at')[:100],
     })
 
@@ -199,7 +223,6 @@ def leave_room(request, room_uuid):
                 room.voice_state = vs
                 room.save(update_fields=['voice_state'])
 
-    # Если это POST-запрос (от формы), перенаправляем на главную
     if request.method == 'POST':
         return redirect('index')
 
@@ -261,8 +284,16 @@ def room_sync_api(request, room_uuid):
         last_id = int(request.GET.get('last_msg_id') or payload.get('last_msg_id') or 0)
         msgs = [{'id': m.id, 'user': m.user, 'text': m.text} for m in room.messages.filter(id__gt=last_id)[:50]]
         new_last_id = msgs[-1]['id'] if msgs else last_id
-        parts = [{'id': p.user_id, 'username': p.user.username, 'is_host': p.user_id == room.host_id} for p in
-                 room.participants.select_related('user').all() if p.user]
+        parts = [
+            {
+                'id': p.user_id,
+                'username': p.user.username,
+                'is_host': p.user_id == room.host_id,
+                'avatar_url': get_user_avatar_url(p.user),
+            }
+            for p in room.participants.select_related('user', 'user__profile').all()
+            if p.user
+        ]
 
         return JsonResponse({
             'status': 'ok',
@@ -274,3 +305,77 @@ def room_sync_api(request, room_uuid):
             'messages': msgs,
             'last_msg_id': new_last_id,
         })
+
+
+@login_required
+def room_reviews_api(request, room_uuid):
+    room = get_object_or_404(Room, uuid=room_uuid)
+    qs = _reviews_queryset_for_room(room).select_related('user', 'user__profile')
+
+    if request.method == 'POST':
+        try:
+            payload = json.loads(request.body.decode('utf-8'))
+        except Exception:
+            payload = request.POST
+
+        comment = (payload.get('comment') or '').strip()
+        try:
+            rating = int(payload.get('rating', 5))
+        except (TypeError, ValueError):
+            rating = 5
+        rating = max(1, min(rating, 5))
+
+        if not comment:
+            return JsonResponse({'status': 'error', 'error': 'Введите текст отзыва'}, status=400)
+
+        if room.video_url:
+            review = MovieReview.objects.filter(user=request.user, video_url=room.video_url).first()
+            if review:
+                review.rating = rating
+                review.comment = comment[:1500]
+                review.room = room
+                review.save()
+            else:
+                MovieReview.objects.create(
+                    user=request.user,
+                    room=room,
+                    video_url=room.video_url,
+                    rating=rating,
+                    comment=comment[:1500],
+                )
+        else:
+            review = MovieReview.objects.filter(user=request.user, room=room).first()
+            if review:
+                review.rating = rating
+                review.comment = comment[:1500]
+                review.save()
+            else:
+                MovieReview.objects.create(
+                    user=request.user,
+                    room=room,
+                    video_url='',
+                    rating=rating,
+                    comment=comment[:1500],
+                )
+
+        qs = _reviews_queryset_for_room(room).select_related('user', 'user__profile')
+
+    avg_rating = qs.aggregate(avg=Avg('rating'))['avg']
+    reviews_data = [
+        {
+            'id': r.id,
+            'username': r.user.username,
+            'avatar_url': get_user_avatar_url(r.user),
+            'rating': r.rating,
+            'comment': r.comment,
+            'created_at': timezone.localtime(r.created_at).strftime('%d.%m.%Y %H:%M'),
+        }
+        for r in qs[:50]
+    ]
+
+    return JsonResponse({
+        'status': 'ok',
+        'count': qs.count(),
+        'avg_rating': round(float(avg_rating), 1) if avg_rating is not None else None,
+        'reviews': reviews_data,
+    })

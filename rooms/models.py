@@ -93,3 +93,19 @@ class Message(models.Model):
 
     def __str__(self):
         return f"Сообщение от {self.user}"
+
+
+class MovieReview(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='movie_reviews')
+    room = models.ForeignKey(Room, on_delete=models.SET_NULL, null=True, blank=True, related_name='reviews')
+    video_url = models.URLField(max_length=500, blank=True, default='', db_index=True)
+    rating = models.PositiveSmallIntegerField(default=5)
+    comment = models.TextField(max_length=1500)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Отзыв {self.user.username} ({self.rating}/5)"
